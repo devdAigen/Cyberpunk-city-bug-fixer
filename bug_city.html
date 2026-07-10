@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Bug City: Issue Fixer</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Nunito',sans-serif;background:#0d1117;overflow:hidden;height:100dvh;width:100vw}
+#screens{position:fixed;inset:0}
+#menu{position:absolute;inset:0;background:linear-gradient(135deg,#1a2340,#2a3a6a);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;overflow-y:auto}
+#menu::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(59,108,248,0.07) 1px,transparent 1px),linear-gradient(90deg,rgba(59,108,248,0.07) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+.menu-title{font-family:'Orbitron',sans-serif;font-size:clamp(18px,5vw,34px);font-weight:900;color:#fff;text-align:center;text-shadow:0 0 30px rgba(59,108,248,0.8);z-index:1}
+.menu-sub{font-size:11px;color:#8899cc;letter-spacing:.15em;text-transform:uppercase;font-family:'Share Tech Mono',monospace;z-index:1}
+.tier-section{z-index:1;width:100%;max-width:460px}
+.tier-section h4{font-family:'Orbitron',sans-serif;font-size:10px;color:#4466aa;letter-spacing:.1em;margin-bottom:8px;text-align:center}
+.tier-tabs{display:flex;gap:6px;justify-content:center;margin-bottom:10px}
+.tier-tab{padding:7px 18px;border-radius:8px;border:1.5px solid rgba(59,108,248,0.3);background:transparent;color:#556;font-family:'Orbitron',sans-serif;font-size:10px;cursor:pointer;transition:all .2s}
+.tier-tab.active{border-color:#3b6cf8;color:#fff;background:rgba(59,108,248,0.15)}
+.level-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.level-btn{padding:10px 6px;border-radius:10px;border:1.5px solid rgba(59,108,248,0.2);background:rgba(255,255,255,0.03);color:#556;font-family:'Nunito',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;text-align:center;line-height:1.4}
+.level-btn.active{border-color:#3b6cf8;background:rgba(59,108,248,0.18);color:#fff}
+.level-btn .lname{font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;display:block;margin-bottom:2px}
+.level-btn .lsub{font-size:9px;opacity:.7}
+.api-toggle{display:flex;align-items:center;gap:8px;z-index:1}
+.api-toggle input{width:14px;height:14px;accent-color:#3b6cf8}
+.api-toggle label{font-size:12px;color:#8899cc;cursor:pointer}
+#api-config{z-index:1;width:100%;max-width:460px;display:none;flex-direction:column;gap:6px}
+#api-config.show{display:flex}
+.api-inp{flex:1;padding:8px 12px;border:1px solid rgba(59,108,248,0.3);border-radius:8px;background:rgba(255,255,255,0.05);color:#fff;font-size:12px;font-family:'Share Tech Mono',monospace;outline:none}
+.api-inp::placeholder{color:#445}
+.api-hint{font-size:10px;color:#445;font-family:'Share Tech Mono',monospace;line-height:1.5}
+.lb-preview{background:rgba(255,255,255,0.04);border:1px solid rgba(59,108,248,0.2);border-radius:12px;padding:12px 16px;width:100%;max-width:460px;z-index:1}
+.lb-preview h3{font-family:'Orbitron',sans-serif;font-size:11px;color:#3b6cf8;margin-bottom:8px;letter-spacing:.08em}
+.lb-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);color:#778}
+.lb-row .lbn{color:#dde;font-weight:600}
+.start-btn{padding:13px 44px;background:linear-gradient(135deg,#3b6cf8,#7c4dff);border:none;border-radius:12px;color:#fff;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.07em;box-shadow:0 4px 20px rgba(59,108,248,0.4);transition:transform .15s;z-index:1}
+.start-btn:hover{transform:scale(1.04)}
+#game{position:absolute;inset:0;display:none;flex-direction:column}
+#game.active{display:flex}
+#hud{height:46px;background:rgba(15,20,35,0.95);border-bottom:1px solid #1e3a5f;display:flex;align-items:center;padding:0 12px;gap:10px;flex-shrink:0}
+.hud-sal{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#1ec97a}
+.hud-timer{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:#3b6cf8;min-width:48px}
+.hud-timer.danger{color:#e83b6c;animation:tpulse .4s infinite alternate}
+@keyframes tpulse{to{opacity:.2}}
+.hud-bugs{display:flex;gap:4px;align-items:center}
+.bug-dot{width:8px;height:8px;border-radius:50%;background:#e83b6c;transition:background .3s}
+.bug-dot.fixed{background:#1ec97a}
+.hud-lvlbadge{font-family:'Orbitron',sans-serif;font-size:9px;color:#7c4dff;margin-left:auto;font-weight:700;text-align:right;line-height:1.3}
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#000}
+#gc{display:block;image-rendering:auto}
+/* MINIMAP */
+#minimap-wrap{position:absolute;bottom:12px;right:12px;z-index:15;border:2px solid rgba(59,108,248,0.6);border-radius:8px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.7)}
+#minimap{display:block}
+#minimap-label{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-family:'Orbitron',sans-serif;font-size:7px;color:rgba(59,108,248,0.9);letter-spacing:.08em;pointer-events:none;white-space:nowrap}
+/* DPAD */
+#dpad{position:absolute;bottom:12px;left:12px;display:none;grid-template-columns:46px 46px 46px;grid-template-rows:46px 46px 46px;gap:3px;z-index:10}
+#dpad.show{display:grid}
+.dp{border-radius:10px;background:rgba(15,25,50,0.82);border:1.5px solid rgba(59,108,248,0.4);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:#3b6cf8;user-select:none}
+.dp:active{background:rgba(59,108,248,0.25)}
+#dp-u{grid-column:2;grid-row:1}#dp-l{grid-column:1;grid-row:2}
+#dp-c{grid-column:2;grid-row:2;background:rgba(10,15,30,.5);pointer-events:none;border-color:transparent}
+#dp-r{grid-column:3;grid-row:2}#dp-d{grid-column:2;grid-row:3}
+/* ROAST */
+#roast-overlay{position:absolute;inset:0;background:rgba(220,38,38,0);pointer-events:none;z-index:25;display:flex;align-items:center;justify-content:center;transition:background .08s}
+#roast-overlay.flash{background:rgba(220,38,38,0.32)}
+#roast-bubble{position:absolute;bottom:22%;left:50%;transform:translateX(-50%) scale(0);background:#1a0505;border:2px solid #e83b6c;border-radius:16px;padding:14px 18px;max-width:86%;text-align:center;transition:transform .3s cubic-bezier(0.34,1.56,0.64,1)}
+#roast-bubble.show{transform:translateX(-50%) scale(1)}
+#roast-emoji{font-size:26px;display:block;margin-bottom:5px}
+#roast-text{font-family:'Orbitron',sans-serif;font-size:11px;color:#fca5a5;line-height:1.5}
+/* MODAL */
+#modal-wrap{position:absolute;inset:0;background:rgba(10,15,30,0.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:12px;z-index:20}
+#modal-wrap.open{display:flex}
+#modal{background:#fff;border-radius:18px;padding:18px;max-width:460px;width:100%;max-height:92dvh;overflow-y:auto;animation:spring .4s cubic-bezier(0.34,1.56,0.64,1)}
+@keyframes spring{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.m-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.m-title{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:#1a2340}
+.m-right{display:flex;gap:8px;align-items:center}
+.m-badge{font-size:10px;padding:3px 9px;border-radius:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.mcq-b{background:#dbeafe;color:#1d4ed8}.fill-b{background:#ede9fe;color:#6d28d9}.match-b{background:#fff3e0;color:#c06000}
+.m-qtimer{font-family:'Orbitron',sans-serif;font-size:17px;font-weight:700;color:#b45309}
+.m-qtimer.danger{color:#dc2626}
+.m-prog{height:3px;background:#f3f4f6;border-radius:2px;margin-bottom:8px;overflow:hidden}
+.m-prog-bar{height:100%;background:#3b6cf8;transition:width .08s linear}
+.m-q{font-size:12.5px;color:#374151;line-height:1.6;margin-bottom:8px}
+.m-code{background:#1a2340;border-radius:10px;padding:10px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#7ec8e3;line-height:1.75;white-space:pre;overflow-x:auto;margin-bottom:10px}
+.opt{width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:9px;background:#f9fafb;color:#374151;font-family:'Share Tech Mono',monospace;font-size:11.5px;cursor:pointer;text-align:left;margin-bottom:6px;line-height:1.4;transition:all .12s}
+.opt:hover{background:#eef2ff;border-color:#6366f1}
+.opt.correct{background:#dcfce7;border-color:#16a34a;color:#15803d}
+.opt.wrong{background:#fee2e2;border-color:#dc2626;color:#b91c1c}
+.fill-sent{font-family:'Share Tech Mono',monospace;font-size:12.5px;background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e5e7eb;line-height:1.9;margin-bottom:8px;color:#1f2937}
+.blank-span{display:inline-block;min-width:72px;border-bottom:2.5px solid #3b6cf8;text-align:center;color:#1d4ed8;font-weight:600;padding:0 4px}
+.fill-row{display:flex;gap:7px;margin-bottom:8px}
+.fill-inp{flex:1;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-family:'Share Tech Mono',monospace;font-size:13px;color:#1f2937;outline:none}
+.fill-inp:focus{border-color:#3b6cf8}
+.fill-btn{padding:9px 16px;background:#1d4ed8;border:none;border-radius:8px;color:#fff;font-size:13px;cursor:pointer}
+.match-instructions{font-size:11px;color:#6b7280;margin-bottom:8px;padding:6px 10px;background:#f8fafc;border-radius:6px;border-left:3px solid #3b6cf8}
+.match-cols{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.match-col-hdr{font-size:10px;color:#6b7280;font-weight:600;text-align:center;padding:4px;text-transform:uppercase;letter-spacing:.05em}
+.ml-btn{padding:8px 10px;border-radius:8px;background:#eff6ff;border:2px solid #bfdbfe;font-family:'Share Tech Mono',monospace;font-size:11px;color:#1e40af;cursor:pointer;width:100%;text-align:left;transition:all .15s}
+.ml-btn:hover{background:#dbeafe}
+.ml-btn.selected{background:#dbeafe;border-color:#2563eb;box-shadow:0 0 0 3px rgba(59,130,246,0.3)}
+.ml-btn.paired{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
+.ml-btn.correct{background:#dcfce7;border-color:#16a34a;color:#15803d}
+.ml-btn.wrong{background:#fee2e2;border-color:#dc2626;color:#b91c1c}
+.mr-btn{padding:8px 10px;border-radius:8px;background:#f9fafb;border:2px solid #e5e7eb;font-family:'Share Tech Mono',monospace;font-size:11px;color:#374151;cursor:pointer;width:100%;text-align:left;transition:all .15s}
+.mr-btn:hover{background:#f0f4ff;border-color:#6366f1}
+.mr-btn.paired{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
+.mr-btn.correct{background:#dcfce7;border-color:#16a34a;color:#15803d}
+.mr-btn.wrong{background:#fee2e2;border-color:#dc2626;color:#b91c1c}
+.match-check-btn{width:100%;padding:10px;background:linear-gradient(135deg,#3b6cf8,#7c4dff);border:none;border-radius:10px;color:#fff;font-family:'Orbitron',sans-serif;font-size:11px;cursor:pointer;margin-bottom:8px}
+.match-check-btn:disabled{opacity:.4;cursor:not-allowed}
+.m-fb{font-size:12px;color:#6b7280;min-height:16px;line-height:1.5}
+#endscreen{position:absolute;inset:0;background:linear-gradient(135deg,#1a2340,#2a3a6a);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;overflow:auto}
+#endscreen.open{display:flex}
+.end-title{font-family:'Orbitron',sans-serif;font-size:clamp(16px,5vw,28px);font-weight:900;color:#fff;text-align:center}
+.end-salary{font-family:'Orbitron',sans-serif;font-size:clamp(22px,7vw,44px);font-weight:900}
+.end-stats{background:rgba(255,255,255,0.06);border:1px solid rgba(59,108,248,0.2);border-radius:12px;padding:14px 18px;min-width:260px;font-size:12px;color:#aab;display:flex;flex-direction:column;gap:5px}
+.end-stat{display:flex;justify-content:space-between}
+.end-stat span:last-child{color:#fff;font-weight:600}
+.name-inp{padding:10px 14px;border:1.5px solid rgba(59,108,248,0.4);border-radius:10px;background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:'Nunito',sans-serif;outline:none;width:100%;max-width:280px}
+.name-inp::placeholder{color:#445}
+#lvl-banner{position:absolute;inset:0;background:rgba(5,10,20,0.95);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:30}
+#lvl-banner.show{display:flex}
+#lvl-banner h2{font-family:'Orbitron',sans-serif;color:#fff;font-size:clamp(16px,5vw,26px);text-align:center}
+#lvl-banner p{color:#8899cc;font-family:'Share Tech Mono',monospace;font-size:12px}
+#lvl-banner .lvl-preview{width:180px;height:120px;border:1.5px solid rgba(59,108,248,0.4);border-radius:8px;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="screens">
+<div id="menu">
+  <div class="menu-title">🐛 BUG CITY</div>
+  <div class="menu-sub">Issue Fixer — Developer Edition</div>
+  <div class="tier-section">
+    <h4>SELECT DIFFICULTY TIER</h4>
+    <div class="tier-tabs">
+      <button class="tier-tab active" data-tier="intern" onclick="selectTier('intern')">INTERN</button>
+      <button class="tier-tab" data-tier="junior" onclick="selectTier('junior')">JUNIOR</button>
+      <button class="tier-tab" data-tier="senior" onclick="selectTier('senior')">SENIOR</button>
+    </div>
+    <div class="level-grid" id="level-grid"></div>
+  </div>
+  <div class="api-toggle">
+    <input type="checkbox" id="api-chk" onchange="toggleApiConfig()"/>
+    <label for="api-chk">🔌 Use Claude AI question source</label>
+  </div>
+  <div id="api-config">
+    <div style="display:flex;gap:6px">
+      <input class="api-inp" id="api-key" placeholder="sk-ant-... Anthropic API key" type="password"/>
+    </div>
+    <div style="padding:6px 12px;font-size:11px;color:#7ec8e3;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(59,108,248,0.2)">
+      Topic: <input id="api-topic" placeholder="React, Docker, Kubernetes…" style="background:transparent;border:none;outline:none;color:#7ec8e3;font-family:'Share Tech Mono',monospace;font-size:11px;width:60%"/>
+    </div>
+    <div class="api-hint">Questions generated live by Claude AI.</div>
+  </div>
+  <div class="lb-preview">
+    <h3>🏆 LEADERBOARD</h3>
+    <div id="lb-preview-rows"></div>
+  </div>
+  <button class="start-btn" onclick="startGame()">▶ START MISSION</button>
+</div>
+
+<div id="game">
+  <div id="hud">
+    <span class="hud-sal" id="hud-sal">₹2,000</span>
+    <span class="hud-timer" id="hud-timer">60s</span>
+    <div class="hud-bugs" id="hud-bugs"></div>
+    <div class="hud-lvlbadge" id="hud-lvlbadge">INTERN L1</div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="gc"></canvas>
+    <div id="minimap-wrap">
+      <canvas id="minimap"></canvas>
+      <div id="minimap-label">▲ MAP</div>
+    </div>
+    <div id="dpad">
+      <div class="dp" id="dp-u">▲</div><div class="dp" id="dp-l">◀</div>
+      <div class="dp" id="dp-c"></div>
+      <div class="dp" id="dp-r">▶</div><div class="dp" id="dp-d">▼</div>
+    </div>
+    <div id="roast-overlay">
+      <div id="roast-bubble">
+        <span id="roast-emoji">💀</span>
+        <div id="roast-text"></div>
+      </div>
+    </div>
+    <div id="modal-wrap">
+      <div id="modal">
+        <div class="m-top">
+          <span class="m-title" id="m-title">Bug!</span>
+          <div class="m-right"><span class="m-badge" id="m-badge"></span><span class="m-qtimer" id="m-qtimer">20</span></div>
+        </div>
+        <div class="m-prog"><div class="m-prog-bar" id="m-prog-bar" style="width:100%"></div></div>
+        <div class="m-q" id="m-q"></div>
+        <div class="m-code" id="m-code" style="display:none"></div>
+        <div id="m-mcq"></div>
+        <div id="m-fill" style="display:none">
+          <div class="fill-sent" id="m-fill-sent"></div>
+          <div class="fill-row"><input class="fill-inp" id="m-fill-inp" autocomplete="off" spellcheck="false" placeholder="Type your answer…"/><button class="fill-btn" onclick="submitFill()">OK</button></div>
+        </div>
+        <div id="m-match" style="display:none">
+          <div class="match-instructions">👆 Click a left item (blue), then a right item to pair. Pair all then Check.</div>
+          <div class="match-cols" id="m-match-cols">
+            <div class="match-col-hdr">Concept</div><div class="match-col-hdr">Description</div>
+          </div>
+          <button class="match-check-btn" id="m-match-check" onclick="submitMatch()" disabled>CHECK ALL PAIRS</button>
+        </div>
+        <div class="m-fb" id="m-fb"></div>
+      </div>
+    </div>
+    <div id="lvl-banner">
+      <h2 id="lvl-banner-title">LEVEL UP!</h2>
+      <p id="lvl-banner-sub">New district unlocked…</p>
+      <canvas class="lvl-preview" id="lvl-preview"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="endscreen">
+  <div class="end-title" id="end-title">MISSION COMPLETE</div>
+  <div class="end-salary" id="end-sal">₹0</div>
+  <div class="end-stats" id="end-stats"></div>
+  <input class="name-inp" id="end-name" placeholder="Your name for leaderboard" maxlength="16"/>
+  <button class="start-btn" onclick="saveAndRestart()">💾 SAVE & PLAY AGAIN</button>
+</div>
+</div>
+
+<script>
+// ── AUDIO ──
+const AC=new (window.AudioContext||window.webkitAudioContext)();
+function resumeAC(){if(AC.state==='suspended')AC.resume();}
+function playWrong(){
+  const o=AC.createOscillator(),g=AC.createGain(),d=AC.createWaveShaper();
+  const c=new Float32Array(256);for(let i=0;i<256;i++){const x=i*2/256-1;c[i]=x*(Math.abs(x)+0.2)/(x*x+0.2*Math.abs(x)+1);}
+  d.curve=c;o.connect(d);d.connect(g);g.connect(AC.destination);
+  o.type='sawtooth';const t=AC.currentTime;
+  o.frequency.setValueAtTime(520,t);o.frequency.linearRampToValueAtTime(80,t+0.55);o.frequency.linearRampToValueAtTime(50,t+0.9);
+  g.gain.setValueAtTime(0.35,t);g.gain.linearRampToValueAtTime(0,t+0.95);
+  o.start(t);o.stop(t+0.95);
+}
+function playCorrect(){
+  [0,4,7].forEach((s,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+    o.type='triangle';const f=440*Math.pow(2,s/12),t=AC.currentTime+i*0.08;
+    o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.2,t+0.02);g.gain.linearRampToValueAtTime(0,t+0.18);
+    o.start(t);o.stop(t+0.2);
+  });
+}
+function playLevelUp(){
+  [0,4,7,12].forEach((s,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();o.connect(g);g.connect(AC.destination);
+    o.type='square';const f=523*Math.pow(2,s/12),t=AC.currentTime+i*0.12;
+    o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.12,t+0.03);g.gain.linearRampToValueAtTime(0,t+0.22);
+    o.start(t);o.stop(t+0.25);
+  });
+}
+
+// ── ROASTS ──
+const ROASTS=[['😵','bro really thought that was right 💀'],['🤡','skill issue detected... and it\'s you'],['💀','that answer was so wrong it hurt MY feelings'],['🦆','my rubber duck debugger is more useful rn'],['🤦','even ChatGPT said "yikes" at that answer'],['😂','sir this is a coding quiz, not a guessing show'],['🥴','that\'s not a bug fix, that\'s a bug INTRODUCTION'],['👻','confidence 10/10, answer 0/10'],['🔥','your code review would be a bloodbath'],['💣','Stack Overflow would close this as "too wrong"'],['🐛','the bug says thanks for the help'],['😬','your tech lead just got a 2am pager alert'],['🪦','RIP to your PR approval chances'],['🧨','failed CI/CD AND unit tests simultaneously'],['🌚','even null has more value than that answer'],['😤','you merged to main without review, didn\'t you'],['💸','wrong! ₹penalized. go touch documentation'],['🎭','impressively wrong'],['🤖','error 404: correct answer not found in brain'],['🪲','the kind of answer that ships on a Friday'],];
+function getRoast(){return ROASTS[Math.floor(Math.random()*ROASTS.length)];}
+
+// ── TIER CONFIG ──
+const TIER_LEVELS={
+  intern:[{id:'intern_1',name:'Bug Trainee',sub:'Basic syntax & HTTP',time:90,reward:400,penalty:150,qTier:1},{id:'intern_2',name:'Code Monkey',sub:'Arrays & loops',time:80,reward:450,penalty:175,qTier:1},{id:'intern_3',name:'Stack Overflow Reader',sub:'Exceptions & null',time:70,reward:500,penalty:200,qTier:1}],
+  junior:[{id:'junior_1',name:'SDE-I',sub:'OOP & LINQ basics',time:65,reward:600,penalty:280,qTier:2},{id:'junior_2',name:'Feature Dev',sub:'Async & patterns',time:55,reward:700,penalty:350,qTier:2},{id:'junior_3',name:'PR Fighter',sub:'SQL & APIs',time:45,reward:800,penalty:420,qTier:2}],
+  senior:[{id:'senior_1',name:'SDE-II',sub:'Architecture & perf',time:40,reward:900,penalty:500,qTier:3},{id:'senior_2',name:'Tech Lead',sub:'Distributed systems',time:35,reward:1100,penalty:650,qTier:3},{id:'senior_3',name:'Principal Eng',sub:'Deep design patterns',time:30,reward:1400,penalty:850,qTier:3}],
+};
+let selectedTier='intern',selectedLevelId='intern_1';
+function selectTier(t){selectedTier=t;document.querySelectorAll('.tier-tab').forEach(b=>b.classList.toggle('active',b.dataset.tier===t));selectedLevelId=TIER_LEVELS[t][0].id;renderLevelGrid();}
+function renderLevelGrid(){
+  const g=document.getElementById('level-grid');g.innerHTML='';
+  TIER_LEVELS[selectedTier].forEach(l=>{
+    const b=document.createElement('button');b.className='level-btn'+(selectedLevelId===l.id?' active':'');
+    b.innerHTML=`<span class="lname">${l.name}</span><span class="lsub">${l.sub}</span><span class="lsub">⏱${l.time}s·₹${l.reward}</span>`;
+    b.onclick=()=>{selectedLevelId=l.id;renderLevelGrid();};g.appendChild(b);
+  });
+}
+function toggleApiConfig(){document.getElementById('api-config').classList.toggle('show',document.getElementById('api-chk').checked);}
+function getLevelConfig(){for(const t of Object.values(TIER_LEVELS))for(const l of t)if(l.id===selectedLevelId)return l;return TIER_LEVELS.intern[0];}
+
+// ── QUESTION BANK ──
+const QB=[
+  {t:1,icon:'🔴',label:'Null-conditional',color:'#ef4444',q:'Which operator safely accesses a member when object might be null?',code:`string name = user?.Name;`,mcq:{o:['?.','??','!.','&&'],a:0},fill:{s:'The ___ operator returns null instead of throwing.',ans:['?.'],d:'The [___] operator returns null instead of throwing.'},match:{p:[['?.','Null-conditional'],['??','Null-coalescing'],['??=','Null-assign'],['!','Null-forgiving']]},exp:'?. short-circuits to null preventing NullReferenceException.'},
+  {t:1,icon:'🟠',label:'HTTP 404',color:'#f97316',q:'What does HTTP 404 mean?',code:`GET /api/users/9999`,mcq:{o:['Not Found','Server Error','OK','Unauthorized'],a:0},fill:{s:'HTTP ___ means resource does not exist.',ans:['404'],d:'HTTP [___] means resource does not exist.'},match:{p:[['200','OK'],['201','Created'],['404','Not Found'],['500','Server Error']]},exp:'404 Not Found — server cannot locate the resource.'},
+  {t:1,icon:'🟡',label:'void keyword',color:'#eab308',q:'Return type for a C# method returning nothing?',code:`___ Log(string msg) => Console.WriteLine(msg);`,mcq:{o:['void','null','empty','unit'],a:0},fill:{s:'Methods with no return value use ___ as return type.',ans:['void'],d:'Methods with no return value use [___] as return type.'},match:{p:[['void','No return value'],['int','Integer'],['bool','True/false'],['Task','Async void']]},exp:'void signals no return value.'},
+  {t:1,icon:'🟢',label:'StringBuilder',color:'#22c55e',q:'Why prefer StringBuilder over string+ in a loop?',code:`for(int i=0;i<10000;i++) s += chars[i];`,mcq:{o:['string+ is O(n²); StringBuilder O(n)','Less RAM','Compiler requires it','Strings are mutable'],a:0},fill:{s:'String+ in a loop is ___ complexity.',ans:['o(n²)','quadratic'],d:'String+ in a loop is [___] complexity.'},match:{p:[['StringBuilder','O(n) buffer'],['string+','New object each step'],['string.Concat','One-time join'],['string.Join','Array join']]},exp:'string+ creates a new string each iteration. StringBuilder appends in O(1).'},
+  {t:1,icon:'🔵',label:'REST PUT vs POST',color:'#3b82f6',q:'Which HTTP method fully replaces a resource and is idempotent?',code:`// REST CRUD`,mcq:{o:['PUT','POST','PATCH','DELETE'],a:0},fill:{s:'___ fully replaces a resource and is idempotent.',ans:['put'],d:'[___] fully replaces a resource and is idempotent.'},match:{p:[['GET','Read safe'],['POST','Create'],['PUT','Replace idempotent'],['PATCH','Partial update']]},exp:'PUT replaces entirely. POST creates. PATCH partially modifies.'},
+  {t:1,icon:'🟣',label:'private modifier',color:'#a855f7',q:'Which modifier restricts member to its declaring class?',code:`class Dev { ___ int salary; }`,mcq:{o:['private','internal','protected','public'],a:0},fill:{s:'The ___ modifier is visible only within the same class.',ans:['private'],d:'The [___] modifier is visible only within the same class.'},match:{p:[['private','Same class'],['protected','Class+subclasses'],['internal','Same assembly'],['public','Everywhere']]},exp:'private is the most restrictive access level.'},
+  {t:1,icon:'❄️',label:'IDisposable/using',color:'#06b6d4',q:'What does the C# using statement guarantee?',code:`using(var conn = new SqlConnection(cs)){ conn.Open(); }`,mcq:{o:['Dispose() always called','Immediate free','Thread safe','Connection pooled'],a:0},fill:{s:'using guarantees ___ is called even on exception.',ans:['dispose','dispose()'],d:'using guarantees [___] is called even on exception.'},match:{p:[['using','Calls Dispose'],['try/finally','Manual equiv'],['GC.Collect()','Forces GC'],['WeakReference','Doesn\'t prevent GC']]},exp:'using compiles to try/finally ensuring Dispose() always runs.'},
+  {t:1,icon:'🔢',label:'typeof null JS',color:'#f59e0b',q:'What does typeof null return in JavaScript?',code:`console.log(typeof null);`,mcq:{o:['"object"','"null"','"undefined"','"boolean"'],a:0},fill:{s:'typeof null returns "___ " — a historical bug.',ans:['object'],d:'typeof null returns "[___]" — a historical bug.'},match:{p:[['typeof null','"object" bug'],['typeof undefined','"undefined"'],['typeof 42','"number"'],['typeof []','"object"']]},exp:'typeof null === "object" is a 30-year JS quirk.'},
+  {t:1,icon:'📊',label:'SQL INNER JOIN',color:'#0ea5e9',q:'Which JOIN returns only rows matching in BOTH tables?',code:`SELECT * FROM orders o\n___ JOIN items i ON o.id=i.order_id`,mcq:{o:['INNER JOIN','LEFT JOIN','RIGHT JOIN','FULL OUTER'],a:0},fill:{s:'___ JOIN returns only rows where both tables match.',ans:['inner'],d:'[___] JOIN returns only rows where both tables match.'},match:{p:[['INNER','Matching rows only'],['LEFT','All left+matched right'],['RIGHT','All right+matched left'],['FULL OUTER','All rows both']]},exp:'INNER JOIN is the intersection — matching rows on both sides.'},
+  {t:1,icon:'🧊',label:'NullReferenceException',color:'#38bdf8',q:'Exception thrown accessing member on null in C#?',code:`string s = null;\nint len = s.Length;`,mcq:{o:['NullReferenceException','ArgumentException','InvalidOperationException','StackOverflowException'],a:0},fill:{s:'Accessing null throws a ___Exception.',ans:['nullreference'],d:'Accessing null throws a [___]Exception.'},match:{p:[['NullReferenceException','Null dereference'],['StackOverflowException','Infinite recursion'],['DivideByZeroException','÷ by zero'],['ArgumentException','Bad argument']]},exp:'NullReferenceException — most common C# crash.'},
+  {t:1,icon:'🌩️',label:'AWS Lambda',color:'#ff9900',q:'What is AWS Lambda?',code:`// Trigger: SQS → Lambda → DynamoDB`,mcq:{o:['Serverless function execution','Object storage','Managed SQL','DNS routing'],a:0},fill:{s:'Lambda is a ___ compute service — pay per execution.',ans:['serverless','faas'],d:'Lambda is a [___] compute service.'},match:{p:[['Lambda','Serverless functions'],['S3','Object storage'],['RDS','Managed relational DB'],['SQS','Message queue']]},exp:'Lambda runs code without servers. Pay per invocation.'},
+  {t:1,icon:'📡',label:'HTTP 201',color:'#10b981',q:'HTTP status for successful resource creation?',code:`POST /api/bugs → ???`,mcq:{o:['201 Created','200 OK','204 No Content','202 Accepted'],a:0},fill:{s:'A successful creation returns HTTP ___.',ans:['201'],d:'A successful creation returns HTTP [___].'},match:{p:[['200','OK'],['201','Created'],['204','No Content'],['400','Bad Request']]},exp:'201 Created signals the request succeeded and a resource was made.'},
+  {t:2,icon:'⚡',label:'async Task<T>',color:'#f59e0b',q:'Return type for async method returning HttpResponseMessage?',code:`public ___ FetchAsync(){\n  return await http.GetAsync(url);\n}`,mcq:{o:['Task<HttpResponseMessage>','async HttpResponseMessage','void','HttpResponseMessage'],a:0},fill:{s:'Async methods returning T must declare Task<___>.',ans:['t','httpresponsemessage'],d:'Async methods returning T must declare Task<[___]>.'},match:{p:[['async void','Fire-and-forget'],['Task','Async no value'],['Task<T>','Async returns T'],['ValueTask<T>','Low-alloc async']]},exp:'async methods returning values use Task<T>.'},
+  {t:2,icon:'🔗',label:'FirstOrDefault',color:'#0ea5e9',q:'What does FirstOrDefault() return when no element matches?',code:`var bug = bugs.FirstOrDefault(b => b.Severity > 99);`,mcq:{o:['null/default(T)','Throws exception','Empty list','First element'],a:0},fill:{s:'FirstOrDefault returns ___ for reference types with no match.',ans:['null','default'],d:'FirstOrDefault returns [___] for reference types with no match.'},match:{p:[['First()','Throws if empty'],['FirstOrDefault()','Null/default if empty'],['Single()','Throws if ≠1'],['Any()','Returns bool']]},exp:'FirstOrDefault returns default(T) — null for classes.'},
+  {t:2,icon:'🔀',label:'LINQ Select',color:'#8b5cf6',q:'What does LINQ Select() do?',code:`var names = devs.Select(d => d.Name);`,mcq:{o:['Projects to new form','Filters elements','Sorts elements','Groups elements'],a:0},fill:{s:'Select performs a ___ operation on each element.',ans:['projection','mapping'],d:'Select performs a [___] operation on each element.'},match:{p:[['Select','Project/map'],['Where','Filter'],['OrderBy','Sort asc'],['GroupBy','Group by key']]},exp:'Select maps each element to a new shape.'},
+  {t:2,icon:'🧱',label:'sealed class',color:'#64748b',q:'What does sealed prevent in C#?',code:`public sealed class Config { }`,mcq:{o:['Inheritance','Instantiation','Field access','Override in same class'],a:0},fill:{s:'sealed prevents a class from being ___ by another class.',ans:['inherited','extended'],d:'sealed prevents a class from being [___].'},match:{p:[['sealed','No inheritance'],['abstract','Must inherit'],['virtual','Allows override'],['override','Overrides virtual']]},exp:'sealed blocks inheritance. string is a common sealed class.'},
+  {t:2,icon:'🎭',label:'Func vs Action',color:'#ec4899',q:'Key difference between Func<T> and Action<T>?',code:`Func<int,int> sq = x=>x*x;\nAction<int> pr = x=>Console.Write(x);`,mcq:{o:['Func returns value; Action void','Action returns value; Func void','Both void','Both need params'],a:0},fill:{s:'Action returns ___, Func returns a value.',ans:['void','nothing'],d:'Action returns [___], Func returns a value.'},match:{p:[['Action<T>','void return'],['Func<T,TResult>','Returns TResult'],['Predicate<T>','Returns bool'],['Delegate','Base type']]},exp:'Func wraps methods returning a value. Action wraps void methods.'},
+  {t:2,icon:'💡',label:'SOLID-S',color:'#0891b2',q:'What does S in SOLID stand for?',code:`// Each class: one reason to change`,mcq:{o:['Single Responsibility','Separation of Concerns','Static Analysis','Safe Inheritance'],a:0},fill:{s:'S = ___ Responsibility Principle.',ans:['single'],d:'S = [___] Responsibility Principle.'},match:{p:[['S','Single Responsibility'],['O','Open/Closed'],['L','Liskov Substitution'],['I','Interface Segregation']]},exp:'SRP: a class should do one thing.'},
+  {t:2,icon:'🔄',label:'Async Deadlock',color:'#f43f5e',q:'Cause of deadlock when calling .Result in ASP.NET?',code:`string Get() => FetchAsync().Result;`,mcq:{o:['.Result blocks thread & sync context','FetchAsync bug','Missing await','Wrong return type'],a:0},fill:{s:'.Result ___ the calling thread, deadlocking the sync context.',ans:['blocks'],d:'.Result [___] the calling thread.'},match:{p:[['.Result/.Wait()','Deadlocks ASP.NET'],['await','Non-blocking'],['ConfigureAwait(false)','Avoids ctx capture'],['Task.Run()','Thread pool offload']]},exp:'Never use .Result/.Wait() in ASP.NET. Use async/await throughout.'},
+  {t:2,icon:'📊',label:'Dictionary TryGetValue',color:'#2563eb',q:'Why use TryGetValue over dict[key]?',code:`dict.TryGetValue(key, out var val);`,mcq:{o:['Avoids KeyNotFoundException','Faster lookup','Creates key if absent','Sorts dictionary'],a:0},fill:{s:'TryGetValue avoids a ___ if key is missing.',ans:['keynotfoundexception','exception'],d:'TryGetValue avoids a [___] if key is missing.'},match:{p:[['dict[key]','Throws if absent'],['TryGetValue','Returns bool no throw'],['ContainsKey','Only checks presence'],['GetValueOrDefault','Returns null/default']]},exp:'TryGetValue is the safe allocation-free way to get a value.'},
+  {t:2,icon:'🌐',label:'AWS SQS',color:'#ff9900',q:'What is Amazon SQS primarily used for?',code:`ServiceA ──► SQS ──► ServiceB`,mcq:{o:['Async decoupled messaging','Serverless code','Object storage','DNS'],a:0},fill:{s:'SQS is a ___ message queue for decoupling services.',ans:['managed','simple queue'],d:'SQS is a [___] message queue.'},match:{p:[['SQS','Message queue'],['SNS','Pub/sub'],['Lambda','Serverless'],['API Gateway','HTTP API']]},exp:'SQS decouples producers and consumers.'},
+  {t:2,icon:'🔋',label:'throw vs throw ex',color:'#e84855',q:'Difference between throw and throw ex?',code:`catch(Exception ex){\n  throw;    // A\n  throw ex; // B\n}`,mcq:{o:['throw preserves trace; throw ex resets','throw ex preserves; throw resets','Identical','throw ex preferred'],a:0},fill:{s:'Use bare ___ to rethrow without resetting stack trace.',ans:['throw'],d:'Use bare [___] to rethrow without resetting stack trace.'},match:{p:[['throw','Preserves trace'],['throw ex','Resets to catch line'],['throw new Ex(ex)','Wraps in new'],['return','Swallows exception']]},exp:'throw alone preserves the original stack trace.'},
+  {t:3,icon:'🔒',label:'Deadlock',color:'#7c3aed',q:'Root cause of deadlock between two threads?',code:`// T1: lock(A){ lock(B){} }\n// T2: lock(B){ lock(A){} }`,mcq:{o:['Circular lock acquisition order','Too many threads','Lock A is null','B acquired twice'],a:0},fill:{s:'Deadlock results from ___ lock acquisition order.',ans:['circular','inconsistent'],d:'Deadlock results from [___] lock acquisition order.'},match:{p:[['Circular ordering','Causes deadlock'],['Consistent ordering','Prevents deadlock'],['Monitor.TryEnter','Detects/avoids'],['Lock-free','Eliminate locks']]},exp:'Enforce global lock ordering to prevent circular wait.'},
+  {t:3,icon:'📉',label:'Int overflow',color:'#059669',q:'Default C# int arithmetic overflow behavior?',code:`int a=2_000_000_000,b=2_000_000_000;\nint c=a+b;`,mcq:{o:['Silently wraps negative','Throws OverflowException','Returns long','Compiler error'],a:0},fill:{s:'Use ___ or long to detect integer overflow.',ans:['checked'],d:'Use [___] or long to detect integer overflow.'},match:{p:[['checked{}','Throws on overflow'],['unchecked{}','Silent wrap'],['long','Wider 64-bit'],['decimal','High precision']]},exp:'C# wraps int overflow silently. Use checked{} to throw.'},
+  {t:3,icon:'🕸️',label:'N+1 Query',color:'#dc2626',q:'EF Core fix for the N+1 query problem?',code:`var orders=db.Orders.ToList();\nforeach(var o in orders)\n  db.Items.Where(i=>i.OrderId==o.Id).ToList();`,mcq:{o:['.Include(o=>o.Items)','Lazy loading','AsNoTracking()','Raw SQL'],a:0},fill:{s:'Use .___(o=>o.Items) for eager loading in single JOIN.',ans:['include'],d:'Use .[___](o=>o.Items) for eager loading.'},match:{p:[['.Include()','Eager load 1 query'],['Lazy loading','Auto N+1'],['Explicit loading','Manual .Load()'],['Dapper','Full control']]},exp:'.Include() generates a JOIN instead of N queries.'},
+  {t:3,icon:'🏎️',label:'Big-O binary search',color:'#b45309',q:'Time complexity of binary search?',code:`// Each step halves remaining elements`,mcq:{o:['O(log n)','O(n)','O(n log n)','O(1)'],a:0},fill:{s:'Binary search has O(___ n) time complexity.',ans:['log'],d:'Binary search has O([___] n) time complexity.'},match:{p:[['O(1)','Hash lookup'],['O(log n)','Binary search'],['O(n)','Linear scan'],['O(n²)','Bubble sort']]},exp:'Binary search halves each step → O(log n).'},
+  {t:3,icon:'🔑',label:'JWT refresh tokens',color:'#0891b2',q:'Where to store long-lived refresh tokens client-side?',code:`// Access: short JWT  Refresh: long-lived`,mcq:{o:['HttpOnly cookie','localStorage','sessionStorage','URL param'],a:0},fill:{s:'Refresh tokens in ___ cookies block JS/XSS access.',ans:['httponly','http-only'],d:'Refresh tokens in [___] cookies block JS/XSS.'},match:{p:[['HttpOnly cookie','No JS access'],['localStorage','XSS steals it'],['sessionStorage','Tab-scoped XSS risk'],['Memory','Lost on refresh']]},exp:'HttpOnly cookies are inaccessible to JavaScript.'},
+  {t:3,icon:'☁️',label:'CAP Theorem',color:'#0284c7',q:'Can distributed system guarantee all three CAP properties?',code:`// C=Consistency A=Availability P=Partition Tolerance`,mcq:{o:['No — pick 2 of 3','Yes with eventual consistency','Only strong consistency','Only single-node'],a:0},fill:{s:'CAP: only ___ of three properties guaranteed simultaneously.',ans:['2','two'],d:'CAP: only [___] of three properties guaranteed.'},match:{p:[['CP','Consistent+Partition'],['AP','Available+Partition'],['CA','Single-node only'],['Eventual','AP trade-off']]},exp:'CAP: choose 2. Most systems choose AP or CP.'},
+  {t:3,icon:'📋',label:'IDisposable pattern',color:'#475569',q:'Which call suppresses the finalizer after Dispose?',code:`public void Dispose(){\n  Dispose(true);\n  GC.___Finalize(this);\n}`,mcq:{o:['GC.SuppressFinalize(this)','GC.Collect()','GC.KeepAlive(this)','GC.ReRegisterForFinalize'],a:0},fill:{s:'Call GC.___(this) to prevent redundant finalization.',ans:['suppressfinalize'],d:'Call GC.[___](this) to prevent redundant finalization.'},match:{p:[['GC.SuppressFinalize','Stops finalizer'],['~Destructor','Finalizer for unmanaged'],['Dispose(bool)','Managed+unmanaged cleanup'],['IAsyncDisposable','Async cleanup']]},exp:'GC.SuppressFinalize tells GC not to call finalizer after Dispose.'},
+];
+
+// ── DEVDATT'S STACK QUESTIONS (personalised from resume) ──
+const QB_EXTRA=[
+  // .NET / C# Advanced
+  {t:2,icon:'🔌',label:'NHibernate Session',color:'#6366f1',q:'What does NHibernate\'s ISession represent?',code:`using(var session = factory.OpenSession())\n  session.Save(entity);`,mcq:{o:['Unit of work & identity map for DB','Database connection pool','ORM migration tool','Repository factory'],a:0},fill:{s:'NHibernate ISession is a ___ of work that tracks entity state.',ans:['unit'],d:'NHibernate ISession is a [___] of work that tracks entity state.'},match:{p:[['ISession','Unit of work + identity map'],['ISessionFactory','Thread-safe, create once'],['ITransaction','Wraps DB transaction'],['HQL','NHibernate Query Language']]},exp:'ISession is the central API for NHibernate CRUD — lightweight, not thread-safe.'},
+  {t:2,icon:'📦',label:'CQRS Pattern',color:'#8b5cf6',q:'What does CQRS stand for and what does it separate?',code:`// Commands → write side\n// Queries  → read side`,mcq:{o:['Command Query Responsibility Segregation — reads from writes','Create Query Response System','Controller Queue Routing System','Component Query Result Store'],a:0},fill:{s:'CQRS separates ___ operations from query operations.',ans:['command','write','create'],d:'CQRS separates [___] operations from query operations.'},match:{p:[['Command','Mutates state, no return'],['Query','Returns data, no side effects'],['Mediator','Routes C/Q to handlers'],['Event Sourcing','Often paired with CQRS']]},exp:'CQRS splits read and write models so each can be optimised independently.'},
+  {t:2,icon:'⚙️',label:'Redis Cache',color:'#e83b6c',q:'What type of data structure does Redis primarily use for caching?',code:`// Cache-aside pattern:\nvar v = await redis.GetAsync(key);\nif(v==null){ v=await db.GetAsync(id); await redis.SetAsync(key,v,ttl); }`,mcq:{o:['In-memory key-value store','Relational tables','Document collections','Graph nodes'],a:0},fill:{s:'Redis is an in-memory ___ store used for caching and pub/sub.',ans:['key-value','kv'],d:'Redis is an in-memory [___] store used for caching and pub/sub.'},match:{p:[['Redis','In-memory KV, sub-ms latency'],['Elasticsearch','Full-text search & analytics'],['PostgreSQL','Relational ACID DB'],['SQS','Managed message queue']]},exp:'Redis stores data in RAM as key-value pairs — ideal for session cache, rate limiting, pub/sub.'},
+  {t:2,icon:'🔍',label:'Elasticsearch',color:'#f59e0b',q:'What is Elasticsearch primarily used for?',code:`GET /bugs/_search\n{ "query": { "match": { "title": "null pointer" } } }`,mcq:{o:['Full-text search and analytics over large datasets','Relational data storage','Message queuing','In-memory caching'],a:0},fill:{s:'Elasticsearch uses an ___ index structure for fast full-text search.',ans:['inverted'],d:'Elasticsearch uses an [___] index structure for fast full-text search.'},match:{p:[['Elasticsearch','Full-text search + analytics'],['Kibana','Visualise ES data'],['Logstash','Ingest & transform logs'],['Beats','Lightweight data shippers']]},exp:'Elasticsearch uses inverted indices to provide near-real-time search across billions of documents.'},
+  {t:2,icon:'🌐',label:'Webhook vs Polling',color:'#0ea5e9',q:'What is the main advantage of webhooks over polling?',code:`// Polling: GET /status every 5s\n// Webhook: POST /callback when event fires`,mcq:{o:['Push-based — no wasted requests','Easier to implement','More secure by default','Requires no server endpoint'],a:0},fill:{s:'Webhooks are ___ based — the server calls your endpoint when an event occurs.',ans:['push','event'],d:'Webhooks are [___] based — server calls you when an event occurs.'},match:{p:[['Webhook','Push — server calls client'],['Polling','Pull — client asks repeatedly'],['SSE','Server-sent events, uni-directional'],['WebSocket','Bi-directional persistent']]},exp:'Webhooks eliminate wasted polling cycles — your endpoint is called only when an event actually happens.'},
+  {t:2,icon:'🔐',label:'JWT Structure',color:'#7c3aed',q:'What are the three parts of a JWT token?',code:`// eyJhbGci....  eyJ1c2VyX...  SflKxwRJS...`,mcq:{o:['Header.Payload.Signature','Token.Claim.Checksum','Auth.User.Hash','ID.Body.Verify'],a:0},fill:{s:'A JWT has three parts: ___, Payload, and Signature separated by dots.',ans:['header'],d:'A JWT has three parts: [___], Payload, and Signature.'},match:{p:[['Header','Algorithm & token type'],['Payload','Claims (user data, expiry)'],['Signature','Tamper-proof hash'],['Refresh Token','Long-lived — get new access token']]},exp:'JWT = Base64(header).Base64(payload).HMAC(header+payload, secret). Payload is readable but tamper-proof.'},
+  // AWS Deep-dive
+  {t:2,icon:'☁️',label:'SNS vs SQS',color:'#ff9900',q:'What is the key difference between AWS SNS and SQS?',code:`// SNS: one message → many subscribers (fan-out)\n// SQS: queue → one consumer processes each message`,mcq:{o:['SNS is pub/sub fan-out; SQS is point-to-point queue','SQS is pub/sub; SNS is queue','Both are identical','SNS is only for email'],a:0},fill:{s:'SNS is a pub/___ service while SQS is a message queue.',ans:['sub','subscribe'],d:'SNS is a pub/[___] service while SQS is a message queue.'},match:{p:[['SNS','Push to many subscribers'],['SQS','Queue — one consumer'],['Lambda','Triggered by either'],['Dead Letter Queue','Failed message holding']]},exp:'SNS fans out to many (email, SQS, Lambda). SQS decouples one producer from one consumer.'},
+  {t:2,icon:'⚡',label:'Lambda Cold Start',color:'#ff9900',q:'What causes AWS Lambda cold starts?',code:`// First invocation or after idle period\n// Runtime init + code load + handler init`,mcq:{o:['New execution environment being provisioned','Lambda code having bugs','VPC configuration','High memory setting'],a:0},fill:{s:'Lambda cold start happens when a new ___ environment is initialised.',ans:['execution','container','sandbox'],d:'Lambda cold start happens when a new [___] environment is initialised.'},match:{p:[['Cold start','New container — high latency'],['Warm start','Reused container — fast'],['Provisioned concurrency','Pre-warm containers'],['Lambda@Edge','CDN-level execution']]},exp:'Cold starts occur when Lambda spins up a new execution environment. Provisioned Concurrency pre-warms them.'},
+  {t:3,icon:'🏗️',label:'API Gateway patterns',color:'#ff9900',q:'What role does AWS API Gateway play in microservices?',code:`Client → API Gateway → Lambda / ECS / EC2`,mcq:{o:['Single entry point: routing, auth, rate limiting, SSL','Only SSL termination','Only load balancing','Only logging'],a:0},fill:{s:'API Gateway acts as the ___ entry point handling auth, routing, and throttling.',ans:['single','unified'],d:'API Gateway acts as the [___] entry point handling auth, routing and throttling.'},match:{p:[['API Gateway','Single entry, auth, throttle'],['Load Balancer','Distribute traffic by load'],['Service Mesh','Service-to-service comms'],['CDN','Edge caching & distribution']]},exp:'API Gateway handles cross-cutting concerns — auth, rate limiting, SSL, request/response transformation.'},
+  // Angular / Frontend
+  {t:1,icon:'🅰️',label:'Angular RxJS',color:'#dd0031',q:'What does RxJS Observable represent in Angular?',code:`this.http.get('/api/bugs').subscribe(data => ...)`,mcq:{o:['A lazy async data stream that emits values over time','A Promise that resolves once','A synchronous array','An event emitter for DOM events'],a:0},fill:{s:'An Observable is a ___ stream that emits values over time.',ans:['lazy','async'],d:'An Observable is a [___] stream that emits values over time.'},match:{p:[['Observable','Lazy, multi-value stream'],['Subject','Observable + Observer'],['BehaviorSubject','Holds current value'],['pipe()','Chain operators']]},exp:'Observables are lazy — nothing executes until .subscribe() is called. Perfect for HTTP, events, and streams.'},
+  {t:1,icon:'🅰️',label:'Angular HTTP Interceptor',color:'#dd0031',q:'What is an Angular HTTP Interceptor used for?',code:`@Injectable()\nclass AuthInterceptor implements HttpInterceptor {\n  intercept(req, next) {\n    return next.handle(req.clone({setHeaders:{Authorization:'Bearer '+token}}));\n  }\n}`,mcq:{o:['Intercept all HTTP requests/responses to add headers, log, or handle errors','Replace the HTTP client','Cache all responses by default','Prevent duplicate requests'],a:0},fill:{s:'HTTP Interceptors implement the ___ interface to modify requests globally.',ans:['httpinterceptor'],d:'HTTP Interceptors implement the [___] interface to modify requests globally.'},match:{p:[['HttpInterceptor','Modify all HTTP calls'],['HttpClient','Make HTTP calls'],['HttpParams','Build query strings'],['HttpErrorResponse','Typed error response']]},exp:'Interceptors centrally handle auth tokens, logging, error handling and loading spinners across all HTTP calls.'},
+  {t:2,icon:'🅰️',label:'Angular Change Detection',color:'#dd0031',q:'What does ChangeDetectionStrategy.OnPush do in Angular?',code:`@Component({ changeDetection: ChangeDetectionStrategy.OnPush })`,mcq:{o:['Only re-renders when @Input refs change or async pipe emits','Re-renders every 16ms','Disables change detection completely','Only works with signals'],a:0},fill:{s:'OnPush only triggers change detection when an @Input ___ changes or Observable emits.',ans:['reference','ref'],d:'OnPush triggers change detection when an @Input [___] changes or Observable emits.'},match:{p:[['OnPush','Checks on ref change / emit'],['Default','Checks entire tree always'],['markForCheck()','Force check OnPush comp'],['detach()','Remove from CD tree']]},exp:'OnPush skips subtrees where inputs haven\'t changed by reference — major perf win for large lists.'},
+  // Database & Query Optimization
+  {t:2,icon:'🗄️',label:'DB Index Strategy',color:'#059669',q:'When should you add a composite index vs a single-column index?',code:`-- Single: WHERE email = ?\n-- Composite: WHERE tenant_id = ? AND status = ?`,mcq:{o:['Composite when queries filter on multiple columns together','Always use composite','Single is always faster','Composite only for primary keys'],a:0},fill:{s:'Use a ___ index when queries frequently filter on multiple columns together.',ans:['composite','multi-column'],d:'Use a [___] index when queries frequently filter on multiple columns together.'},match:{p:[['Composite index','Multiple columns, order matters'],['Covering index','Includes all query columns'],['Partial index','Index subset of rows'],['B-tree index','Default — range & equality']]},exp:'Composite index column order matches your WHERE clause. Leftmost prefix rule applies.'},
+  {t:2,icon:'🗄️',label:'PostgreSQL EXPLAIN',color:'#336791',q:'What does EXPLAIN ANALYZE show in PostgreSQL?',code:`EXPLAIN ANALYZE\nSELECT * FROM candidates WHERE email = 'x@y.com';`,mcq:{o:['Actual execution plan with real timings and row counts','Only estimated query plan','Table schema details','Index definitions'],a:0},fill:{s:'EXPLAIN ___ executes the query and shows actual vs estimated row counts.',ans:['analyze','analyse'],d:'EXPLAIN [___] executes the query and shows actual vs estimated row counts.'},match:{p:[['Seq Scan','Full table scan — no index'],['Index Scan','Uses index, random I/O'],['Bitmap Heap Scan','Batch index + heap fetch'],['Hash Join','Join via hash table']]},exp:'EXPLAIN ANALYZE is the primary tool for query tuning — shows actual vs estimated rows and where time is spent.'},
+  // IoT / Azure
+  {t:2,icon:'📡',label:'MQTT Protocol',color:'#00979d',q:'Why is MQTT preferred over HTTP for IoT devices?',code:`// Publish: device → broker → subscribers\n// Topic: cargo/vehicle/42/telemetry`,mcq:{o:['Lightweight pub/sub with tiny overhead, ideal for low-bandwidth devices','MQTT is more secure','MQTT supports SQL queries','HTTP has no IoT support'],a:0},fill:{s:'MQTT uses a ___ model making it ideal for constrained IoT devices.',ans:['pub/sub','publish-subscribe'],d:'MQTT uses a [___] model ideal for constrained IoT devices.'},match:{p:[['MQTT','Lightweight pub/sub IoT'],['AMQP','Enterprise messaging'],['HTTP','Request-response'],['CoAP','RESTful for constrained devices']]},exp:'MQTT keeps connections alive and uses tiny packets — perfect for sensors sending data frequently over cellular.'},
+  {t:2,icon:'🔷',label:'Azure Service Bus',color:'#0078d4',q:'How does Azure Service Bus differ from Azure Storage Queue?',code:`// Service Bus: sessions, dead-letter, ordering\n// Storage Queue: simple, 64KB, REST`,mcq:{o:['Service Bus has advanced features: sessions, ordering, dead-letter, 256KB+ messages','They are identical','Storage Queue is enterprise grade','Service Bus is cheaper'],a:0},fill:{s:'Azure Service Bus supports message ___ and dead-letter queues unlike Storage Queue.',ans:['sessions','ordering'],d:'Azure Service Bus supports message [___] and dead-letter queues.'},match:{p:[['Service Bus','Enterprise: sessions, DLQ, ordering'],['Storage Queue','Simple, cheap, REST-based'],['Event Hub','High-throughput event streaming'],['Event Grid','Reactive event routing']]},exp:'Service Bus is the enterprise choice — use it when you need ordering, duplicate detection, or dead-letter handling.'},
+  // OAuth2 / Security
+  {t:2,icon:'🔑',label:'OAuth2 Flow',color:'#3b6cf8',q:'Which OAuth2 flow should a server-side web app use?',code:`// Client ID + Secret + Auth Code → Token\n// Code never exposed to browser`,mcq:{o:['Authorization Code Flow','Implicit Flow','Client Credentials Flow','Device Flow'],a:0},fill:{s:'Server-side apps use Authorization ___ Flow to keep the client secret secure.',ans:['code'],d:'Server-side apps use Authorization [___] Flow to keep the client secret secure.'},match:{p:[['Auth Code Flow','Web apps with backend'],['Client Credentials','Service-to-service'],['PKCE','SPAs / mobile apps'],['Device Flow','CLI / TV / IoT']]},exp:'Auth Code Flow keeps the client secret on the server. PKCE extends it safely for SPAs without a secret.'},
+  // Performance & Microservices
+  {t:3,icon:'🚀',label:'Concurrent Users',color:'#dc2626',q:'Which technique most directly helps handle 1K+ concurrent API users?',code:`// 30% latency reduction, 1K+ concurrent users`,mcq:{o:['Async I/O + connection pooling + caching','Adding more CPU cores only','Increasing DB max connections','Disabling logging'],a:0},fill:{s:'Async I/O prevents thread ___ while waiting for database or network calls.',ans:['blocking','starvation'],d:'Async I/O prevents thread [___] while waiting for DB or network calls.'},match:{p:[['Async/await','Non-blocking I/O'],['Redis cache','Reduce DB hits'],['Connection pool','Reuse DB connections'],['Load balancer','Distribute across instances']]},exp:'Async I/O frees threads during awaits; Redis reduces DB pressure; connection pooling avoids connection overhead.'},
+  {t:3,icon:'🔗',label:'Microservices Communication',color:'#7c3aed',q:'When should you use async messaging (SQS) over synchronous REST between microservices?',code:`// Order Service → SQS → Inventory Service\n// vs\n// Order Service → REST → Inventory Service`,mcq:{o:['When services can tolerate eventual consistency and you need decoupling/resilience','When you need immediate response','When latency < 10ms required','When services share a DB'],a:0},fill:{s:'Async messaging provides service ___ so failures don\'t cascade synchronously.',ans:['decoupling','isolation'],d:'Async messaging provides service [___] so failures don\'t cascade.'},match:{p:[['SQS async','Decoupled, resilient, eventual'],['REST sync','Immediate response, tight coupling'],['gRPC','High-perf binary, streaming'],['Event bus','Broadcast to many services']]},exp:'Use async when the caller doesn\'t need an immediate result — it decouples services and prevents cascade failures.'},
+  {t:3,icon:'📊',label:'Geofencing',color:'#0891b2',q:'What is geofencing and how is it typically implemented for IoT vehicle tracking?',code:`// Vehicle coords → check if inside polygon\n// Haversine distance or PostGIS ST_Within()`,mcq:{o:['Triggering alerts when a device enters/exits a defined geographic boundary','Encrypting GPS data','Compressing telemetry','Tracking indoor Wi-Fi position'],a:0},fill:{s:'Geofencing triggers alerts when a device crosses a defined geographic ___.',ans:['boundary','fence'],d:'Geofencing triggers alerts when a device crosses a defined geographic [___].'},match:{p:[['Geofencing','Boundary crossing alerts'],['PostGIS','PostgreSQL spatial extension'],['Haversine','Great-circle distance formula'],['MQTT','Telemetry delivery protocol']]},exp:'Geofencing checks if GPS coordinates are inside a polygon — PostGIS ST_Within() or Haversine formula for circles.'},
+];
+
+const ALL_QS=[...QB,...QB_EXTRA];
+let usedQIds=new Set();
+function getUnusedQs(tier,count){
+  let pool=QB.filter((q,i)=>q.t<=tier&&!usedQIds.has(i));
+  if(pool.length<count){usedQIds.clear();pool=QB.filter(q=>q.t<=tier);}
+  const picked=[...pool].sort(()=>Math.random()-.5).slice(0,count);
+  picked.forEach(q=>usedQIds.add(QB.indexOf(q)));return picked;
+}
+
+// ── MAP GENERATION ──
+const COLS=31,ROWS=23;
+// GTA-style zoomed tile size — bigger tiles for detail
+const TILE=64;
+const MAP_ROAD=0,MAP_BLDG=1,MAP_WALL=2;
+
+const LEVEL_THEMES=[
+  {// Level 1 — Downtown Day
+    sky:'#2c3e50',road:'#546e7a',roadMark:'rgba(255,255,255,0.15)',sidewalk:'rgba(200,180,140,0.2)',
+    bldgPals:[{face:'#3d5a80',top:'#2d4a70',win:'#ffd166',winDark:'#1a2a3a',roof:'#2a3f5c'},{face:'#6b4c4c',top:'#5a3c3c',win:'#ffe8a0',winDark:'#2a1a1a',roof:'#4a2c2c'},{face:'#3d6b4c',top:'#2d5a3c',win:'#b8f0c8',winDark:'#1a2a1a',roof:'#2c4a3c'},{face:'#6b6b3d',top:'#5a5a2d',win:'#fff0a0',winDark:'#2a2a1a',roof:'#4a4a2c'},{face:'#4c3d6b',top:'#3c2d5a',win:'#d4b8f0',winDark:'#1a1a2a',roof:'#3c2c4a'}],
+    lampColor:'rgba(255,220,130,0.8)',accentColor:'#ffd166',label:'🏙️ DOWNTOWN',sub:'Level 1 — City streets',minimapRoad:'#6b7f8a',minimapBldg:'#3d5a80',minimapBg:'#1a2530'
+  },
+  {// Level 2 — Construction Night
+    sky:'#0d1b2a',road:'#3a3a3a',roadMark:'rgba(255,200,0,0.3)',sidewalk:'rgba(255,180,0,0.08)',
+    bldgPals:[{face:'#1a2a1a',top:'#122212',win:'#ffe066',winDark:'#0a0a0a',roof:'#111'},{face:'#2a1a1a',top:'#1a0a0a',win:'#ff9900',winDark:'#0a0a0a',roof:'#111'},{face:'#1a1a2a',top:'#0a0a1a',win:'#66ccff',winDark:'#050505',roof:'#0a0a14'},{face:'#222222',top:'#151515',win:'#ffcc00',winDark:'#0a0a0a',roof:'#111'},{face:'#1e2a1e',top:'#121a12',win:'#88ff88',winDark:'#050505',roof:'#0d0d0d'}],
+    lampColor:'rgba(255,140,0,0.75)',accentColor:'#ffcc00',label:'🏗️ CONSTRUCTION ZONE',sub:'Level 2 — Night shift',minimapRoad:'#505050',minimapBldg:'#1a2a1a',minimapBg:'#080e14'
+  },
+  {// Level 3 — Cyberpunk Neon
+    sky:'#0a0015',road:'#1a0a2a',roadMark:'rgba(180,0,255,0.35)',sidewalk:'rgba(180,0,255,0.06)',
+    bldgPals:[{face:'#1a0035',top:'#0d0025',win:'#ff00ff',winDark:'#0d0020',roof:'#0a001a'},{face:'#00152a',top:'#000d1a',win:'#00ffff',winDark:'#00050d',roof:'#000a15'},{face:'#1a1500',top:'#0d0e00',win:'#ffff00',winDark:'#0a0a00',roof:'#0d0a00'},{face:'#001a0a',top:'#000d05',win:'#00ff88',winDark:'#000a05',roof:'#000d05'},{face:'#1a0008',top:'#0d0005',win:'#ff0066',winDark:'#0a0005',roof:'#0d0005'}],
+    lampColor:'rgba(180,0,255,0.9)',accentColor:'#ff00ff',label:'🌆 NEON DISTRICT',sub:'Level 3 — Senior zone',minimapRoad:'#2d0a50',minimapBldg:'#1a0035',minimapBg:'#050008'
+  },
+];
+
+function genCityMaze(){
+  const g=[];
+  for(let r=0;r<ROWS;r++){g.push([]);for(let c=0;c<COLS;c++)g[r].push(MAP_WALL);}
+  // Streets every 6 cells
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(r%6===0||c%6===0)g[r][c]=MAP_ROAD;
+    else g[r][c]=MAP_BLDG;
+  }
+  // Carve alley shortcuts between blocks
+  for(let br=1;br<ROWS-1;br+=6){
+    for(let bc=1;bc<COLS-1;bc+=6){
+      // Random alley within block
+      const ar=br+1+Math.floor(Math.random()*3);
+      const ac=bc+1+Math.floor(Math.random()*3);
+      if(ar<ROWS&&ac<COLS){
+        g[ar][ac]=MAP_ROAD;
+        // Connect alley to nearby street
+        const dr=ar<br+3?-1:1;
+        let nr=ar+dr;
+        while(nr>=0&&nr<ROWS&&g[nr][ac]!==MAP_ROAD){g[nr][ac]=MAP_ROAD;nr+=dr;}
+      }
+    }
+  }
+  // Border walls
+  for(let r=0;r<ROWS;r++){g[r][0]=MAP_WALL;g[r][COLS-1]=MAP_WALL;}
+  for(let c=0;c<COLS;c++){g[0][c]=MAP_WALL;g[ROWS-1][c]=MAP_WALL;}
+  return g;
+}
+
+let MAP=genCityMaze();
+let currentTheme=LEVEL_THEMES[0];
+function isWalkable(r,c){return r>=0&&r<ROWS&&c>=0&&c<COLS&&MAP[r][c]===MAP_ROAD;}
+function walkCells(){const a=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(MAP[r][c]===MAP_ROAD)a.push({r,c});return a;}
+
+// ── FOG OF WAR ──
+// fogGrid: 0=never seen, 1=visited (fully revealed on main map), 2=currently in view
+let fogGrid=[];
+const FOG_RADIUS=5;
+function initFog(){
+  fogGrid=[];
+  for(let r=0;r<ROWS;r++){fogGrid.push([]);for(let c=0;c<COLS;c++)fogGrid[r].push(0);}
+}
+function revealFog(pr,pc){
+  for(let dr=-FOG_RADIUS;dr<=FOG_RADIUS;dr++)for(let dc=-FOG_RADIUS;dc<=FOG_RADIUS;dc++){
+    if(dr*dr+dc*dc<=FOG_RADIUS*FOG_RADIUS){
+      const nr=pr+dr,nc=pc+dc;
+      if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS)fogGrid[nr][nc]=Math.max(fogGrid[nr][nc],1);
+    }
+  }
+}
+
+// ── STATE ──
+let salary,gameLevel,bugs,gameRunning,modalOpen,raf;
+let camX=0,camY=0,camTargetX=0,camTargetY=0;
+let playerPX=0,playerPY=0,playerFaceLeft=false,legPhase=0,playerShake=0;
+let timerLeft,penaltyCycle,streak=0,bugFixed=0,penaltyCount=0;
+let keys={};
+let curBug=null,curBugIdx=-1,qTimerLeft=0,qTimerMax=0,qTimerInt=null;
+let curLevelConfig=null;
+let matchLeftSelected=null,matchState={},matchRightValues=[];
+let apiQuestions=[];
+let roastTO=null;
+const floatings=[];
+
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+const minimapCanvas=document.getElementById('minimap');
+const mmCtx=minimapCanvas.getContext('2d');
+const MM_CELL=4; // minimap pixels per tile
+minimapCanvas.width=COLS*MM_CELL;minimapCanvas.height=ROWS*MM_CELL;
+
+selectTier('intern');renderLBPreview();
+
+function getLevelConfig(){for(const t of Object.values(TIER_LEVELS))for(const l of t)if(l.id===selectedLevelId)return l;return TIER_LEVELS.intern[0];}
+
+async function startGame(){
+  resumeAC();curLevelConfig=getLevelConfig();
+  document.getElementById('menu').style.display='none';
+  document.getElementById('endscreen').classList.remove('open');
+  document.getElementById('game').classList.add('active');
+  salary=2000;gameLevel=1;bugFixed=0;penaltyCount=0;streak=0;usedQIds.clear();apiQuestions=[];
+  if(document.getElementById('api-chk').checked){
+    const key=document.getElementById('api-key').value.trim();
+    const topic=document.getElementById('api-topic').value.trim();
+    if(key)await fetchAPIQuestions(key,topic,curLevelConfig.qTier);
+  }
+  currentTheme=LEVEL_THEMES[0];
+  MAP=genCityMaze();initFog();
+  const first=walkCells()[0];
+  playerPX=first.c*TILE+TILE/2;playerPY=first.r*TILE+TILE/2;
+  camX=playerPX;camY=playerPY;
+  initLevel();
+}
+
+async function fetchAPIQuestions(apiKey,topic,tier){
+  const tl=tier===1?'junior dev (syntax,HTTP)':tier===2?'mid dev (async,patterns)':'senior eng (distributed)';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:`Generate 8 unique coding quiz questions for a ${tl}${topic?' Focus: '+topic:''}.
+Return ONLY a JSON array. Each: {"icon":"emoji","label":"label","color":"#hex","q":"question","code":"snippet or empty","mcq":{"o":["A","B","C","D"],"a":0},"fill":{"s":"sentence with ___ blank","ans":["ans"],"d":"with [___]"},"match":{"p":[["term","desc"],["term","desc"],["term","desc"],["term","desc"]]},"exp":"explanation"}`}]})});
+    const data=await res.json();
+    const text=data.content?.map(c=>c.text||'').join('');
+    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    if(Array.isArray(parsed))apiQuestions=parsed.map(q=>({...q,t:tier}));
+  }catch(e){console.warn('API failed, using built-in.',e);}
+}
+
+function initLevel(){
+  timerLeft=curLevelConfig.time;
+  const count=Math.min(4+gameLevel,9);
+  const paths=walkCells();const used=new Set();
+  const pool=[...apiQuestions,...getUnusedQs(curLevelConfig.qTier,count)];
+  const fmts=['mcq','fill','match'];
+  bugs=[];
+  for(let i=0;i<count;i++){
+    let cell,t=0;
+    do{cell=paths[Math.floor(Math.random()*paths.length)];t++;}
+    while((used.has(cell.r+','+cell.c)||(Math.hypot(cell.r-Math.floor(playerPY/TILE),cell.c-Math.floor(playerPX/TILE))<3))&&t<300);
+    used.add(cell.r+','+cell.c);
+    const q=pool[i%pool.length];
+    bugs.push({...cell,...q,fmt:fmts[Math.floor(Math.random()*fmts.length)],id:Math.random(),fixed:false,bounce:Math.random()*Math.PI*2});
+  }
+  updateHUD();
+  clearInterval(penaltyCycle);
+  penaltyCycle=setInterval(()=>{
+    if(!gameRunning||modalOpen)return;
+    timerLeft--;updateHUDTimer();
+    if(timerLeft<=0){timerLeft=curLevelConfig.time;salary=Math.max(0,salary-curLevelConfig.penalty);penaltyCount++;showFloat('-₹'+curLevelConfig.penalty.toLocaleString('en-IN'),'#e83b6c');updateHUD();}
+  },1000);
+  gameRunning=true;
+  if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(gameLoop);
+  if(window.innerWidth<=700||'ontouchstart' in window)document.getElementById('dpad').classList.add('show');
+}
+
+function cellCenter(r,c){return{x:c*TILE+TILE/2,y:r*TILE+TILE/2};}
+function updateHUD(){
+  document.getElementById('hud-sal').textContent='₹'+salary.toLocaleString('en-IN');
+  document.getElementById('hud-bugs').innerHTML=bugs.map(b=>`<div class="bug-dot${b.fixed?' fixed':''}"></div>`).join('');
+  document.getElementById('hud-lvlbadge').textContent=curLevelConfig.name+'\n'+currentTheme.label;
+  updateHUDTimer();
+}
+function updateHUDTimer(){const el=document.getElementById('hud-timer');el.textContent=timerLeft+'s';el.className='hud-timer'+(timerLeft<=10?' danger':'');}
+
+// ── GAME LOOP ──
+const SPEED=3.5;
+function gameLoop(){
+  raf=requestAnimationFrame(gameLoop);
+  if(!gameRunning||modalOpen)return;
+  if(playerShake>0)playerShake--;
+  handleMovement();smoothCamera();drawScene();drawMinimap();checkProximity();
+}
+function handleMovement(){
+  let dx=0,dy=0;
+  if(keys['ArrowUp']||keys['w']||keys['W'])dy=-1;
+  else if(keys['ArrowDown']||keys['s']||keys['S'])dy=1;
+  if(keys['ArrowLeft']||keys['a']||keys['A']){dx=-1;playerFaceLeft=true;}
+  else if(keys['ArrowRight']||keys['d']||keys['D']){dx=1;playerFaceLeft=false;}
+  if(dx||dy)legPhase+=0.2;
+  if(dx){const nx=playerPX+dx*SPEED;if(isWalkable(Math.floor(playerPY/TILE),Math.floor(nx/TILE)))playerPX=nx;}
+  if(dy){const ny=playerPY+dy*SPEED;if(isWalkable(Math.floor(ny/TILE),Math.floor(playerPX/TILE)))playerPY=ny;}
+  // reveal fog around player
+  revealFog(Math.floor(playerPY/TILE),Math.floor(playerPX/TILE));
+}
+function smoothCamera(){
+  const cw=canvas.parentElement.clientWidth||320,ch=canvas.parentElement.clientHeight||480;
+  canvas.width=cw;canvas.height=ch;
+  camTargetX=Math.max(cw/2,Math.min(COLS*TILE-cw/2,playerPX));
+  camTargetY=Math.max(ch/2,Math.min(ROWS*TILE-ch/2,playerPY));
+  // Smooth follow (GTA-style)
+  camX+=(camTargetX-camX)*0.08;
+  camY+=(camTargetY-camY)*0.08;
+}
+function checkProximity(){
+  if(modalOpen)return;
+  for(let i=0;i<bugs.length;i++){
+    if(bugs[i].fixed)continue;
+    const bc=cellCenter(bugs[i].r,bugs[i].c);
+    if(Math.hypot(playerPX-bc.x,playerPY-bc.y)<TILE*0.65){openModal(i);return;}
+  }
+}
+
+// ── DRAW SCENE ──
+const BLDG_PALETTES=[{face:'#3d5a80',top:'#2d4a70',win:'#ffd166',winDark:'#1a2a3a',roof:'#2a3f5c'},{face:'#6b4c4c',top:'#5a3c3c',win:'#ffe8a0',winDark:'#2a1a1a',roof:'#4a2c2c'},{face:'#3d6b4c',top:'#2d5a3c',win:'#b8f0c8',winDark:'#1a2a1a',roof:'#2c4a3c'},{face:'#6b6b3d',top:'#5a5a2d',win:'#fff0a0',winDark:'#2a2a1a',roof:'#4a4a2c'},{face:'#4c3d6b',top:'#3c2d5a',win:'#d4b8f0',winDark:'#1a1a2a',roof:'#3c2c4a'}];
+
+function drawScene(){
+  const cw=canvas.width,ch=canvas.height;
+  ctx.clearRect(0,0,cw,ch);
+  const theme=currentTheme;
+  const shx=playerShake>0?(Math.random()*5-2.5)*Math.sin(playerShake)*.8:0;
+  const shy=playerShake>0?(Math.random()*5-2.5)*Math.cos(playerShake)*.6:0;
+  ctx.save();
+  // GTA-style: translate so player is in view-center
+  ctx.translate(Math.round(cw/2-camX+shx),Math.round(ch/2-camY+shy));
+
+  // Background fill
+  ctx.fillStyle=theme.sky;ctx.fillRect(-camX+cw/2,-camY+ch/2,COLS*TILE,ROWS*TILE);
+  // But fill entire view
+  ctx.fillStyle=theme.sky;ctx.fillRect(-10000,-10000,20000,20000);
+
+  // Visible tile range (frustum culling)
+  const startC=Math.max(0,Math.floor((camX-cw/2)/TILE)-1);
+  const endC=Math.min(COLS,Math.ceil((camX+cw/2)/TILE)+1);
+  const startR=Math.max(0,Math.floor((camY-ch/2)/TILE)-1);
+  const endR=Math.min(ROWS,Math.ceil((camY+ch/2)/TILE)+1);
+  const now=Date.now();
+  const bldgPals=theme.bldgPals||BLDG_PALETTES;
+
+  for(let r=startR;r<endR;r++){
+    for(let c=startC;c<endC;c++){
+      const x=c*TILE,y=r*TILE,cell=MAP[r][c];
+      if(cell===MAP_ROAD){
+        ctx.fillStyle=theme.road;ctx.fillRect(x,y,TILE,TILE);
+        // Road markings — dashes on major streets
+        ctx.fillStyle=theme.roadMark;
+        if(r%6===0&&c%3===0&&c+1<COLS&&MAP[r][c+1]===MAP_ROAD){ctx.fillRect(x+6,y+TILE/2-2,TILE-12,4);}
+        if(c%6===0&&r%3===0&&r+1<ROWS&&MAP[r+1][c]===MAP_ROAD){ctx.fillRect(x+TILE/2-2,y+6,4,TILE-12);}
+        // Sidewalk edge near buildings
+        const adjBldg=[[-1,0],[1,0],[0,-1],[0,1]].some(([dr,dc])=>{const nr=r+dr,nc=c+dc;return nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&MAP[nr][nc]===MAP_BLDG;});
+        if(adjBldg){ctx.fillStyle=theme.sidewalk;ctx.fillRect(x,y,TILE,TILE);}
+        // Neon puddles level 3
+        if(theme===LEVEL_THEMES[2]&&(r+c)%4===0){
+          const ref=ctx.createRadialGradient(x+TILE/2,y+TILE/2,0,x+TILE/2,y+TILE/2,TILE*.6);
+          const nc2=['rgba(255,0,255,0.1)','rgba(0,255,255,0.1)','rgba(255,0,100,0.1)'][(r*c)%3];
+          ref.addColorStop(0,nc2);ref.addColorStop(1,'transparent');
+          ctx.fillStyle=ref;ctx.fillRect(x,y,TILE,TILE);
+        }
+      } else if(cell===MAP_BLDG){
+        const pal=bldgPals[((r>>2)*7+(c>>2)*3)%bldgPals.length];
+        // Shadow offset
+        ctx.fillStyle='rgba(0,0,0,0.28)';ctx.fillRect(x+5,y+5,TILE-5,TILE-5);
+        // Main face
+        ctx.fillStyle=pal.face;ctx.fillRect(x,y,TILE,TILE);
+        // 3D top/left highlight
+        ctx.fillStyle=pal.top;ctx.fillRect(x,y,TILE,8);ctx.fillRect(x,y,8,TILE);
+        // Dark right/bottom
+        ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(x+TILE-5,y,5,TILE);ctx.fillRect(x,y+TILE-5,TILE,5);
+        // Windows — bigger since tiles are bigger
+        const ww=10,wh=9,gap=6,mx=12,my=12;
+        for(let wr=0;wr<3;wr++)for(let wc=0;wc<3;wc++){
+          const wx=x+mx+wc*(ww+gap),wy=y+my+wr*(wh+gap);
+          if(wx+ww<x+TILE-5&&wy+wh<y+TILE-5){
+            const lit=((r+c+wr*3+wc*7+Math.floor(now/5000))%5!==0);
+            ctx.fillStyle=lit?pal.win:pal.winDark;ctx.fillRect(wx,wy,ww,wh);
+            if(lit){
+              ctx.fillStyle='rgba(255,255,255,0.35)';ctx.fillRect(wx,wy,4,3);
+              if(theme===LEVEL_THEMES[2]){ctx.save();ctx.globalAlpha=0.3;const wg=ctx.createRadialGradient(wx+5,wy+4,0,wx+5,wy+4,14);wg.addColorStop(0,pal.win);wg.addColorStop(1,'transparent');ctx.fillStyle=wg;ctx.fillRect(wx-5,wy-5,ww+10,wh+10);ctx.restore();}
+            }
+          }
+        }
+        // Roof detail
+        ctx.fillStyle=pal.roof;ctx.fillRect(x+4,y+4,10,4);ctx.fillRect(x+TILE-16,y+4,10,4);
+        // Construction crane level 2
+        if(theme===LEVEL_THEMES[1]&&(r*COLS+c)%13===0){
+          ctx.fillStyle='#ffcc00';ctx.fillRect(x+TILE/2-2,y-12,4,14);ctx.fillRect(x+TILE/2-2,y-12,18,3);
+          ctx.strokeStyle='#ffcc00';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x+TILE/2+16,y-12);ctx.lineTo(x+TILE/2,y-3);ctx.stroke();
+        }
+      } else {
+        ctx.fillStyle='#0a1018';ctx.fillRect(x,y,TILE,TILE);
+      }
+    }
+  }
+
+  // Street lamps at intersections
+  const lampColor=theme.lampColor;
+  for(let r=startR;r<endR;r+=6)for(let c=startC;c<endC;c+=6)drawLamp(c*TILE+8,r*TILE,lampColor);
+
+  // ── FOG OF WAR overlay on main map ──
+  for(let r=startR;r<endR;r++){
+    for(let c=startC;c<endC;c++){
+      const fog=fogGrid[r]?fogGrid[r][c]??0:0;
+      if(fog===0){
+        // Never visited — solid dark fog
+        ctx.fillStyle='rgba(5,8,18,0.94)';
+        ctx.fillRect(c*TILE,r*TILE,TILE,TILE);
+      } else if(fog===1){
+        // Visited but not current view — slight darkening to show explored
+        // (no overlay — keep fully bright so player can see their explored city)
+      }
+    }
+  }
+  // Soft vignette fog at edges of reveal radius around player
+  const playerGridR=Math.floor(playerPY/TILE),playerGridC=Math.floor(playerPX/TILE);
+  const vigR=FOG_RADIUS*TILE,vigX=playerGridC*TILE+TILE/2,vigY=playerGridR*TILE+TILE/2;
+  const vg=ctx.createRadialGradient(vigX,vigY,vigR*0.55,vigX,vigY,vigR*1.1);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(0.7,'rgba(5,8,18,0)');vg.addColorStop(1,'rgba(5,8,18,0.82)');
+  ctx.fillStyle=vg;ctx.fillRect(vigX-vigR*1.2,vigY-vigR*1.2,vigR*2.4,vigR*2.4);
+
+  // Scanlines cyberpunk
+  if(theme===LEVEL_THEMES[2]){
+    ctx.save();ctx.globalAlpha=0.025;
+    const scanStart=Math.floor((camY-ch/2)/3)*3;
+    for(let sy=scanStart;sy<camY+ch/2;sy+=3){ctx.fillStyle='#000';ctx.fillRect(camX-cw/2,sy,cw,1);}
+    ctx.restore();
+  }
+
+  // Bugs
+  for(const bug of bugs){
+    if(bug.fixed)continue;
+    const bc=cellCenter(bug.r,bug.c);
+    const bob=Math.sin(now/280+bug.bounce)*5;
+    // Ground shadow
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(bc.x,bc.y+TILE*.38,TILE*.28,TILE*.1,0,0,Math.PI*2);ctx.fill();
+    // Glow
+    const gr=ctx.createRadialGradient(bc.x,bc.y+bob,2,bc.x,bc.y+bob,TILE*.75);
+    gr.addColorStop(0,'rgba(232,59,108,0.55)');gr.addColorStop(1,'transparent');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(bc.x,bc.y+bob,TILE*.75,0,Math.PI*2);ctx.fill();
+    // Bug emoji — large because tiles are big
+    ctx.font=`${TILE*.55}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🐛',bc.x,bc.y+bob);
+    // Alert tag
+    ctx.fillStyle='rgba(15,10,25,0.82)';ctx.beginPath();ctx.roundRect(bc.x-22,bc.y+bob-TILE*.58,44,18,6);ctx.fill();
+    ctx.font=`bold ${TILE*.2}px Orbitron,sans-serif`;ctx.fillStyle='#ff4466';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('! BUG',bc.x,bc.y+bob-TILE*.49);
+    // Reward
+    ctx.font=`${TILE*.16}px Share Tech Mono,monospace`;ctx.fillStyle=theme.accentColor;ctx.textBaseline='top';ctx.fillText('₹'+curLevelConfig.reward,bc.x,bc.y+bob+TILE*.32);
+  }
+
+  // Player
+  const shakeX=playerShake>0?Math.sin(playerShake*1.4)*(playerShake/2.5):0;
+  drawPerson(playerPX+shakeX,playerPY,playerFaceLeft,legPhase);
+
+  // Floatings
+  for(let i=floatings.length-1;i>=0;i--){
+    const f=floatings[i];ctx.globalAlpha=f.life/55;
+    ctx.font='bold 14px Orbitron,sans-serif';ctx.fillStyle=f.color;ctx.textAlign='center';
+    ctx.fillText(f.text,f.x,f.y);f.y-=1.2;f.life--;if(f.life<=0)floatings.splice(i,1);
+  }
+  ctx.globalAlpha=1;ctx.restore();
+}
+
+function drawLamp(x,y,glowColor){
+  ctx.save();
+  ctx.fillStyle='#607080';ctx.fillRect(x,y+TILE*.08,4,TILE*.45);
+  ctx.fillStyle='#506070';ctx.fillRect(x-5,y+TILE*.08,14,4);
+  const glow=Math.sin(Date.now()/900)*.05+0.18;
+  ctx.globalAlpha=glow;
+  const lg=ctx.createRadialGradient(x+2,y+TILE*.08,0,x+2,y+TILE*.08,TILE*.45);
+  lg.addColorStop(0,glowColor);lg.addColorStop(1,'transparent');
+  ctx.fillStyle=lg;ctx.beginPath();ctx.arc(x+2,y+TILE*.08,TILE*.45,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;ctx.restore();
+}
+
+function drawPerson(cx,cy,facingLeft,phase){
+  ctx.save();
+  if(facingLeft){ctx.translate(cx*2,0);ctx.scale(-1,1);}
+  const s=TILE*.52; // larger since tiles are 64px
+  // Shadow
+  ctx.globalAlpha=.18;ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(cx,cy+s*1.3,s*.52,s*.13,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  // Legs
+  const lA=Math.sin(phase)*s*.4,rA=Math.sin(phase+Math.PI)*s*.4;
+  ctx.fillStyle='#1e3a5f';
+  ctx.beginPath();ctx.ellipse(cx-s*.2,cy+s*.72+lA,s*.17,s*.33,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+s*.2,cy+s*.72+rA,s*.17,s*.33,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#111827';
+  ctx.beginPath();ctx.ellipse(cx-s*.2,cy+s*1.06+lA,s*.24,s*.1,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+s*.2,cy+s*1.06+rA,s*.24,s*.1,0,0,Math.PI*2);ctx.fill();
+  // Torso
+  ctx.fillStyle='#4f46e5';ctx.beginPath();ctx.roundRect(cx-s*.37,cy-s*.15,s*.74,s*.73,s*.14);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.18)';ctx.beginPath();ctx.roundRect(cx-s*.14,cy-s*.15,s*.28,s*.17,4);ctx.fill();
+  // ID lanyard
+  ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(cx,cy-s*.05);ctx.lineTo(cx,cy+s*.28);ctx.stroke();
+  ctx.fillStyle='#fbbf24';ctx.fillRect(cx-6,cy+s*.23,12,9);
+  ctx.fillStyle='#1a1a2e';ctx.font=`bold ${s*.17}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('DEV',cx,cy+s*.27+3);
+  // Arms
+  const as=Math.sin(phase)*s*.2;
+  ctx.fillStyle='#4338ca';
+  ctx.beginPath();ctx.ellipse(cx-s*.5,cy+s*.15+as,s*.14,s*.34,0.18,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+s*.5,cy+s*.15-as,s*.14,s*.34,-0.18,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fbbf24';
+  ctx.beginPath();ctx.arc(cx-s*.5,cy+s*.47+as,s*.13,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(cx+s*.5,cy+s*.47-as,s*.13,0,Math.PI*2);ctx.fill();
+  // Head
+  ctx.fillStyle='#f5d78e';ctx.beginPath();ctx.ellipse(cx,cy-s*.29,s*.14,s*.15,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx,cy-s*.65,s*.29,s*.34,0,0,Math.PI*2);ctx.fill();
+  // Hair
+  ctx.fillStyle='#4a3000';
+  ctx.beginPath();ctx.ellipse(cx,cy-s*.9,s*.27,s*.15,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx-s*.25,cy-s*.74,s*.1,s*.2,-.28,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+s*.25,cy-s*.74,s*.1,s*.2,.28,0,Math.PI*2);ctx.fill();
+  // Eyes
+  ctx.fillStyle='#1e1e2e';
+  ctx.beginPath();ctx.ellipse(cx-s*.1,cy-s*.63,s*.06,s*.07,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+s*.1,cy-s*.63,s*.06,s*.07,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx-s*.08,cy-s*.65,s*.02,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(cx+s*.12,cy-s*.65,s*.02,0,Math.PI*2);ctx.fill();
+  // Smile
+  ctx.strokeStyle='#8b3a00';ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(cx,cy-s*.58,s*.1,0.15,Math.PI-.15);ctx.stroke();
+  // Glasses
+  ctx.strokeStyle='#2d2d2d';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.arc(cx-s*.1,cy-s*.63,s*.1,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx+s*.1,cy-s*.63,s*.1,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-s*.2,cy-s*.63);ctx.lineTo(cx,cy-s*.63);ctx.stroke();
+  ctx.restore();
+}
+
+// ── MINIMAP ──
+// Minimap shows the FULL layout always — fog only dims unvisited areas
+function drawMinimap(){
+  const theme=currentTheme;
+  mmCtx.clearRect(0,0,minimapCanvas.width,minimapCanvas.height);
+  mmCtx.fillStyle=theme.minimapBg||'#0a1520';
+  mmCtx.fillRect(0,0,minimapCanvas.width,minimapCanvas.height);
+
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const fogState=fogGrid[r]?fogGrid[r][c]??0:0;
+      const cell=MAP[r][c];
+      // Always draw the full map but dim unvisited areas
+      if(cell===MAP_ROAD){
+        mmCtx.fillStyle=fogState>=1
+          ? (theme.minimapRoad||'#6b7f8a')
+          : 'rgba(60,75,85,0.35)'; // dimmed but visible
+      } else if(cell===MAP_BLDG){
+        mmCtx.fillStyle=fogState>=1
+          ? (theme.minimapBldg||'#3d5a80')
+          : 'rgba(30,45,60,0.35)';
+      } else {
+        mmCtx.fillStyle=fogState>=1?'#0a0f18':'rgba(5,8,14,0.4)';
+      }
+      mmCtx.fillRect(c*MM_CELL,r*MM_CELL,MM_CELL,MM_CELL);
+
+      // Fog overlay for unvisited — semi-transparent black mask
+      if(fogState===0){
+        mmCtx.fillStyle='rgba(0,0,0,0.68)';
+        mmCtx.fillRect(c*MM_CELL,r*MM_CELL,MM_CELL,MM_CELL);
+      }
+    }
+  }
+
+  // Bug markers — show ALL bugs on minimap (dim if unvisited, bright if visited)
+  for(const bug of bugs){
+    if(bug.fixed)continue;
+    const fogState=fogGrid[bug.r]?fogGrid[bug.r][bug.c]??0:0;
+    mmCtx.fillStyle=fogState>=1?'#e83b6c':'rgba(232,59,108,0.4)';
+    mmCtx.beginPath();
+    mmCtx.arc(bug.c*MM_CELL+MM_CELL/2,bug.r*MM_CELL+MM_CELL/2,fogState>=1?MM_CELL*.9:MM_CELL*.5,0,Math.PI*2);
+    mmCtx.fill();
+    // Pulse ring for visible bugs
+    if(fogState>=1){
+      const pulse=0.4+Math.sin(Date.now()/400)*0.3;
+      mmCtx.strokeStyle=`rgba(232,59,108,${pulse})`;mmCtx.lineWidth=0.8;
+      mmCtx.beginPath();mmCtx.arc(bug.c*MM_CELL+MM_CELL/2,bug.r*MM_CELL+MM_CELL/2,MM_CELL*1.5,0,Math.PI*2);mmCtx.stroke();
+    }
+  }
+
+  // Player dot — always full bright
+  const pr=Math.floor(playerPY/TILE),pc=Math.floor(playerPX/TILE);
+  // Glow
+  mmCtx.fillStyle='rgba(255,255,255,0.25)';
+  mmCtx.beginPath();mmCtx.arc(pc*MM_CELL+MM_CELL/2,pr*MM_CELL+MM_CELL/2,MM_CELL*2.2,0,Math.PI*2);mmCtx.fill();
+  mmCtx.fillStyle='#ffffff';
+  mmCtx.beginPath();mmCtx.arc(pc*MM_CELL+MM_CELL/2,pr*MM_CELL+MM_CELL/2,MM_CELL*1.1,0,Math.PI*2);mmCtx.fill();
+
+  // Player direction arrow
+  const angle=playerFaceLeft?Math.PI:0;
+  mmCtx.strokeStyle='#fff';mmCtx.lineWidth=1.2;
+  mmCtx.beginPath();
+  mmCtx.moveTo(pc*MM_CELL+MM_CELL/2,pr*MM_CELL+MM_CELL/2);
+  mmCtx.lineTo(pc*MM_CELL+MM_CELL/2+Math.cos(angle)*MM_CELL*2.2,pr*MM_CELL+MM_CELL/2+Math.sin(angle)*MM_CELL*0.6);
+  mmCtx.stroke();
+
+  // Camera viewport rect
+  const cw=canvas.width,ch=canvas.height;
+  const vpL=(camX-cw/2)/TILE*MM_CELL,vpT=(camY-ch/2)/TILE*MM_CELL;
+  const vpW=cw/TILE*MM_CELL,vpH=ch/TILE*MM_CELL;
+  mmCtx.strokeStyle='rgba(59,108,248,0.6)';mmCtx.lineWidth=1;
+  mmCtx.strokeRect(vpL,vpT,vpW,vpH);
+
+  // Minimap border glow matching theme accent
+  mmCtx.strokeStyle=theme.accentColor||'rgba(59,108,248,0.8)';mmCtx.lineWidth=1;
+  mmCtx.strokeRect(0,0,minimapCanvas.width,minimapCanvas.height);
+}
+
+function showFloat(text,color){floatings.push({text,color,x:playerPX,y:playerPY-28,life:55});}
+
+// ── ROAST ──
+function triggerRoast(){
+  const[emoji,msg]=getRoast();
+  document.getElementById('roast-emoji').textContent=emoji;
+  document.getElementById('roast-text').textContent=msg;
+  const ov=document.getElementById('roast-overlay');const bb=document.getElementById('roast-bubble');
+  ov.classList.add('flash');bb.classList.add('show');playerShake=20;
+  clearTimeout(roastTO);roastTO=setTimeout(()=>{ov.classList.remove('flash');bb.classList.remove('show');},2500);
+}
+
+// ── LEVEL BANNER ──
+function showLevelBanner(){
+  gameRunning=false;clearInterval(penaltyCycle);
+  salary+=1000;showFloat('+₹1,000 LEVEL BONUS','#fbbf24');playLevelUp();
+  // Update theme
+  currentTheme=LEVEL_THEMES[Math.min(gameLevel-1,LEVEL_THEMES.length-1)];
+  const banner=document.getElementById('lvl-banner');
+  document.getElementById('lvl-banner-title').textContent=currentTheme.label;
+  document.getElementById('lvl-banner-sub').textContent=currentTheme.sub;
+  // Draw preview minimap
+  const pvc=document.getElementById('lvl-preview');
+  const pctx=pvc.getContext('2d');
+  pvc.width=180;pvc.height=120;
+  const newMap=genCityMaze();
+  const scx=pvc.width/COLS,scy=pvc.height/ROWS;
+  pctx.fillStyle=currentTheme.minimapBg||'#0a1520';pctx.fillRect(0,0,180,120);
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(newMap[r][c]===MAP_ROAD)pctx.fillStyle=currentTheme.minimapRoad;
+    else if(newMap[r][c]===MAP_BLDG)pctx.fillStyle=currentTheme.minimapBldg;
+    else pctx.fillStyle='#050a10';
+    pctx.fillRect(Math.round(c*scx),Math.round(r*scy),Math.max(1,Math.round(scx)),Math.max(1,Math.round(scy)));
+  }
+  // Overlay fog effect on preview
+  pctx.fillStyle='rgba(0,0,0,0.55)';pctx.fillRect(0,0,180,120);
+  pctx.fillStyle=currentTheme.accentColor;pctx.font='bold 11px Orbitron,sans-serif';pctx.textAlign='center';pctx.textBaseline='middle';pctx.fillText('? EXPLORE TO REVEAL ?',90,60);
+  banner.classList.add('show');
+  setTimeout(()=>{
+    banner.classList.remove('show');
+    MAP=newMap;initFog();
+    const first=walkCells()[0];playerPX=first.c*TILE+TILE/2;playerPY=first.r*TILE+TILE/2;
+    camX=playerPX;camY=playerPY;
+    initLevel();
+  },2800);
+}
+
+// ── MODAL ──
+function openModal(idx){
+  resumeAC();modalOpen=true;curBugIdx=idx;curBug=bugs[idx];
+  const q=curBug;
+  qTimerMax=q.t===1?18:q.t===2?24:30;qTimerLeft=qTimerMax;
+  document.getElementById('m-title').textContent=q.icon+' '+q.label;
+  const badge=document.getElementById('m-badge');
+  badge.textContent={mcq:'MCQ',fill:'Fill in Blank',match:'Match the Pair'}[q.fmt];
+  badge.className='m-badge '+{mcq:'mcq-b',fill:'fill-b',match:'match-b'}[q.fmt];
+  document.getElementById('m-q').textContent=q.q;
+  const ce=document.getElementById('m-code');
+  if(q.code){ce.textContent=q.code;ce.style.display='block';}else ce.style.display='none';
+  document.getElementById('m-fb').textContent='';document.getElementById('m-prog-bar').style.width='100%';
+  document.getElementById('m-mcq').innerHTML='';document.getElementById('m-fill').style.display='none';document.getElementById('m-match').style.display='none';
+  document.getElementById('m-fill-inp').value='';
+  if(q.fmt==='mcq'){
+    q.mcq.o.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>answerMCQ(i);document.getElementById('m-mcq').appendChild(b);});
+  } else if(q.fmt==='fill'){
+    document.getElementById('m-fill').style.display='block';
+    document.getElementById('m-fill-sent').innerHTML=q.fill.d.replace('[___]','<span class="blank-span">___</span>');
+    setTimeout(()=>document.getElementById('m-fill-inp').focus(),150);
+    document.getElementById('m-fill-inp').onkeydown=e=>{if(e.key==='Enter')submitFill();};
+  } else {buildMatch(q);document.getElementById('m-match').style.display='block';}
+  updateQTimer();clearInterval(qTimerInt);
+  qTimerInt=setInterval(()=>{qTimerLeft--;updateQTimer();if(qTimerLeft<=0){clearInterval(qTimerInt);timeoutQ();}},1000);
+  document.getElementById('modal-wrap').classList.add('open');
+}
+
+function updateQTimer(){
+  const el=document.getElementById('m-qtimer');el.textContent=qTimerLeft;el.className='m-qtimer'+(qTimerLeft<=6?' danger':'');
+  document.getElementById('m-prog-bar').style.width=Math.round(qTimerLeft/qTimerMax*100)+'%';
+}
+function answerMCQ(idx){
+  clearInterval(qTimerInt);document.querySelectorAll('.opt').forEach(b=>b.onclick=null);
+  const ok=idx===curBug.mcq.a;
+  document.querySelectorAll('.opt')[idx].className='opt '+(ok?'correct':'wrong');
+  if(!ok)document.querySelectorAll('.opt')[curBug.mcq.a].className='opt correct';
+  document.getElementById('m-fb').textContent=(ok?'✅ ':'❌ ')+curBug.exp;
+  if(ok)playCorrect();else playWrong();
+  setTimeout(()=>closeModal(ok),1800);
+}
+function submitFill(){
+  clearInterval(qTimerInt);
+  const val=document.getElementById('m-fill-inp').value.trim().toLowerCase().replace(/\s+/g,'');
+  const ok=curBug.fill.ans.some(a=>val===a.toLowerCase().replace(/\s+/g,''));
+  document.getElementById('m-fill-inp').style.borderColor=ok?'#16a34a':'#dc2626';
+  document.getElementById('m-fill-sent').innerHTML=curBug.fill.d.replace('[___]',`<span class="blank-span" style="color:${ok?'#15803d':'#b91c1c'}">${curBug.fill.ans[0]}</span>`);
+  document.getElementById('m-fb').textContent=(ok?'✅ Correct! ':'❌ Answer: '+curBug.fill.ans[0]+'. ')+curBug.exp;
+  if(ok)playCorrect();else playWrong();setTimeout(()=>closeModal(ok),1800);
+}
+function buildMatch(q){
+  matchLeftSelected=null;matchState={};
+  matchRightValues=[...q.match.p.map(p=>p[1])].sort(()=>Math.random()-.5);
+  const grid=document.getElementById('m-match-cols');
+  grid.innerHTML='<div class="match-col-hdr">Concept</div><div class="match-col-hdr">Description</div>';
+  q.match.p.forEach((pair,li)=>{
+    const lb=document.createElement('button');lb.className='ml-btn';lb.id='ml-'+li;lb.textContent=pair[0];
+    lb.addEventListener('click',()=>onMatchLeft(li));grid.appendChild(lb);
+    const rb=document.createElement('button');rb.className='mr-btn';rb.id='mr-'+li;
+    rb.dataset.val=matchRightValues[li];rb.textContent=matchRightValues[li];
+    rb.addEventListener('click',()=>onMatchRight(matchRightValues[li]));grid.appendChild(rb);
+  });
+  document.getElementById('m-match-check').disabled=true;
+}
+function onMatchLeft(li){
+  document.querySelectorAll('.ml-btn').forEach(b=>b.classList.remove('selected'));
+  if(matchLeftSelected===li){matchLeftSelected=null;return;}
+  matchLeftSelected=li;document.getElementById('ml-'+li).classList.add('selected');
+}
+function onMatchRight(val){
+  if(matchLeftSelected===null)return;
+  const li=matchLeftSelected;
+  Object.keys(matchState).forEach(k=>{if(matchState[k]===val){delete matchState[k];const lb=document.getElementById('ml-'+k);if(lb){lb.classList.remove('paired');}}});
+  const prevVal=matchState[li];
+  if(prevVal)document.querySelectorAll('.mr-btn').forEach(b=>{if(b.dataset.val===prevVal)b.classList.remove('paired');});
+  matchState[li]=val;
+  document.querySelectorAll('.ml-btn').forEach(b=>b.classList.remove('selected'));
+  document.querySelectorAll('.mr-btn').forEach(b=>{if(b.dataset.val===val)b.classList.add('paired');});
+  document.getElementById('ml-'+li).classList.remove('selected');document.getElementById('ml-'+li).classList.add('paired');
+  matchLeftSelected=null;
+  document.getElementById('m-match-check').disabled=Object.keys(matchState).length<curBug.match.p.length;
+}
+function submitMatch(){
+  clearInterval(qTimerInt);const pairs=curBug.match.p;let allOk=true;
+  pairs.forEach((pair,li)=>{
+    const chosen=matchState[li],correct=pair[1];
+    const lb=document.getElementById('ml-'+li);if(lb)lb.className='ml-btn '+(chosen===correct?'correct':'wrong');
+    document.querySelectorAll('.mr-btn').forEach(b=>{if(b.dataset.val===correct)b.className='mr-btn correct';else if(b.dataset.val===chosen)b.className='mr-btn wrong';});
+    if(chosen!==correct)allOk=false;
+  });
+  document.getElementById('m-match-check').disabled=true;
+  document.getElementById('m-fb').textContent=(allOk?'✅ All correct! ':'❌ Some wrong. ')+curBug.exp;
+  if(allOk)playCorrect();else playWrong();setTimeout(()=>closeModal(allOk),1900);
+}
+function timeoutQ(){
+  const fmt=curBug.fmt;
+  if(fmt==='mcq'){document.querySelectorAll('.opt').forEach(b=>b.onclick=null);const opts=document.querySelectorAll('.opt');if(opts[curBug.mcq.a])opts[curBug.mcq.a].className='opt correct';}
+  else if(fmt==='fill'){document.getElementById('m-fill-sent').innerHTML=curBug.fill.d.replace('[___]',`<span class="blank-span" style="color:#b91c1c">${curBug.fill.ans[0]}</span>`);}
+  else{curBug.match.p.forEach((p,li)=>{const lb=document.getElementById('ml-'+li);if(lb)lb.className='ml-btn wrong';document.querySelectorAll('.mr-btn').forEach(b=>{if(b.dataset.val===p[1])b.className='mr-btn correct';});});}
+  document.getElementById('m-fb').textContent='⏰ '+curBug.exp;
+  playWrong();setTimeout(()=>closeModal(false),1900);
+}
+function closeModal(ok){
+  clearInterval(qTimerInt);document.getElementById('modal-wrap').classList.remove('open');modalOpen=false;
+  if(ok){
+    streak++;const bonus=streak>=3?Math.floor(curLevelConfig.reward*.5):streak>=2?Math.floor(curLevelConfig.reward*.2):0;
+    salary+=curLevelConfig.reward+bonus;bugFixed++;bugs[curBugIdx].fixed=true;
+    showFloat('+₹'+(curLevelConfig.reward+bonus).toLocaleString('en-IN'),'#1ec97a');
+  } else {
+    triggerRoast();streak=0;salary=Math.max(0,salary-curLevelConfig.penalty);penaltyCount++;
+    bugs[curBugIdx].fixed=true;showFloat('-₹'+curLevelConfig.penalty.toLocaleString('en-IN'),'#e83b6c');
+  }
+  updateHUD();
+  if(bugs.every(b=>b.fixed)){if(gameLevel<3){gameLevel++;showLevelBanner();}else endGame(true);}
+}
+function endGame(won){
+  gameRunning=false;clearInterval(penaltyCycle);clearInterval(qTimerInt);
+  document.getElementById('game').classList.remove('active');document.getElementById('endscreen').classList.add('open');
+  document.getElementById('end-title').textContent=won?'MISSION COMPLETE 🎉':'GAME OVER 💀';
+  document.getElementById('end-sal').textContent='₹'+salary.toLocaleString('en-IN');
+  document.getElementById('end-sal').style.color=salary>2000?'#1ec97a':'#e83b6c';
+  document.getElementById('end-stats').innerHTML=`<div class="end-stat"><span>Level</span><span>${curLevelConfig.name}</span></div><div class="end-stat"><span>Bugs Fixed</span><span>${bugFixed}</span></div><div class="end-stat"><span>Time Penalties</span><span>${penaltyCount}</span></div><div class="end-stat"><span>Best Streak</span><span>${streak}🔥</span></div><div class="end-stat"><span>Levels</span><span>${gameLevel+(won?0:-1)}/3</span></div>`;
+}
+function saveAndRestart(){
+  const name=document.getElementById('end-name').value.trim()||'Anonymous';
+  const lb=getLB();lb.push({name,salary,diff:curLevelConfig.name,timestamp:Date.now()});
+  lb.sort((a,b)=>b.salary-a.salary);
+  try{localStorage.setItem('bugcity_lb',JSON.stringify(lb.slice(0,20)));}catch(e){}
+  document.getElementById('endscreen').classList.remove('open');document.getElementById('menu').style.display='flex';renderLBPreview();
+}
+function getLB(){try{return JSON.parse(localStorage.getItem('bugcity_lb')||'[]');}catch(e){return[];}}
+function renderLBPreview(){
+  const lb=getLB();const el=document.getElementById('lb-preview-rows');
+  if(!lb.length){el.innerHTML='<div class="lb-row" style="color:#445">No scores yet!</div>';return;}
+  el.innerHTML=lb.slice(0,5).map((e,i)=>`<div class="lb-row"><span>${['🥇','🥈','🥉','  ','  '][i]} <span class="lbn">${e.name}</span></span><span>₹${e.salary.toLocaleString('en-IN')}·${e.diff}</span></div>`).join('');
+}
+
+// ── INPUT ──
+document.addEventListener('keydown',e=>{keys[e.key]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();});
+document.addEventListener('keyup',e=>keys[e.key]=false);
+const dpMap={'dp-u':'ArrowUp','dp-d':'ArrowDown','dp-l':'ArrowLeft','dp-r':'ArrowRight'};
+Object.entries(dpMap).forEach(([id,k])=>{
+  const el=document.getElementById(id);
+  el.addEventListener('touchstart',e=>{e.preventDefault();keys[k]=true;},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();keys[k]=false;},{passive:false});
+  el.addEventListener('mousedown',()=>keys[k]=true);el.addEventListener('mouseup',()=>keys[k]=false);el.addEventListener('mouseleave',()=>keys[k]=false);
+});
+let sx=0,sy=0;
+document.getElementById('gc').addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+document.getElementById('gc').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)<14&&Math.abs(dy)<14)return;
+  if(Math.abs(dx)>Math.abs(dy)){if(dx>0)keys['ArrowRight']=true;else keys['ArrowLeft']=true;}else{if(dy>0)keys['ArrowDown']=true;else keys['ArrowUp']=true;}
+  setTimeout(()=>{keys['ArrowRight']=keys['ArrowLeft']=keys['ArrowUp']=keys['ArrowDown']=false;},130);
+},{passive:true});
+</script>
+</body>
+</html>
