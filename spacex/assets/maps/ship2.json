@@ -1,0 +1,14 @@
+{ "columns":14,
+ "image":"..\/tiles\/tilesheet.png",
+ "imageheight":704,
+ "imagewidth":896,
+ "margin":0,
+ "name":"ship",
+ "spacing":0,
+ "tilecount":154,
+ "tiledversion":"1.12.2",
+ "tileheight":64,
+ "tilewidth":64,
+ "type":"tileset",
+ "version":"1.10"
+}
