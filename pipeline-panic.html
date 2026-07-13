@@ -69,10 +69,12 @@
   .room::after{content:''; position:absolute; inset:6px; border:1px dashed rgba(255,255,255,0.05); border-radius:4px; pointer-events:none;}
   .room-label{position:absolute; top:6px; left:0; right:0; text-align:center; font-family:var(--display); font-size:13px; letter-spacing:.03em; color:var(--ink-dim); text-transform:uppercase;}
   .room-dot{position:absolute; bottom:8px; left:50%; transform:translateX(-50%); width:10px; height:10px; border-radius:50%; background:var(--wall);}
-  .room.idle{border-color:var(--wall);}
-  .room.leaking{border-color:var(--amber); box-shadow:0 0 18px rgba(255,179,71,.35), inset 0 0 20px rgba(255,179,71,.08);}
-  .room.leaking .room-dot{background:var(--amber); box-shadow:0 0 8px var(--amber); animation:pulse 1.1s infinite;}
-  .room.sealed{border-color:var(--green);} .room.sealed .room-dot{background:var(--green);}
+  .room.idle{border-color:var(--wall);} 
+  .room.available{border-color:var(--cyan); box-shadow:0 0 16px rgba(78,205,196,.28), inset 0 0 16px rgba(78,205,196,.08);} 
+  .room.available .room-dot{background:var(--cyan); box-shadow:0 0 8px var(--cyan);} 
+  .room.leaking{border-color:var(--amber); box-shadow:0 0 18px rgba(255,179,71,.35), inset 0 0 20px rgba(255,179,71,.08);} 
+  .room.leaking .room-dot{background:var(--amber); box-shadow:0 0 8px var(--amber); animation:pulse 1.1s infinite;} 
+  .room.sealed{border-color:var(--green);} .room.sealed .room-dot{background:var(--green);} 
   .room.burst{border-color:var(--red); box-shadow:0 0 22px rgba(255,77,94,.4);} .room.burst .room-dot{background:var(--red); animation:pulse .4s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
@@ -246,7 +248,7 @@ const byId = id => ROOMS.find(r => r.id === id);
 let state = {
   sessionId:null, questionBank:[], salary:0, streak:0, criticality:0, stage:'stable',
   currentNodeId:'reactor', nodeStatus:{}, fixedQuestionIds:[], failedQuestionIds:[],
-  activeQuestion:null, timerHandle:null, timeLeft:30, modalOpen:false,
+  activeQuestion:null, timerHandle:null, timeLeft:30, modalOpen:false, allowedTravelNodeIds:[],
 };
 ROOMS.forEach(r => state.nodeStatus[r.id] = 'idle');
 
@@ -262,13 +264,107 @@ const CRIT_DEC_ON_FIX = 5;
 // (for leak highlighting and task tracking) but no longer gate movement themselves.
 const MAP_W = 760, MAP_H = 600;
 const HULL_MARGIN = 14;
-const CORRIDOR_W = 56; // visual width of the corridor strips drawn between rooms (no longer gates collision)
+const CORRIDOR_W = 56; // visual width of the corridor strips drawn between rooms
+const WALKABLE_INSET = 8;
+let walkableAreas = [];
 
-function buildWalkable(){ /* no-op — kept as a call site in init() in case per-room walls are reintroduced later */ }
+function getRectBetweenRooms(a, b){
+  if(a.col === b.col){
+    const top = a.row < b.row ? a : b;
+    const bot = a.row < b.row ? b : a;
+    return { x: top.x + ROOM_W / 2 - CORRIDOR_W / 2, y: top.y + ROOM_H, w: CORRIDOR_W, h: bot.y - (top.y + ROOM_H) };
+  }
+
+  const left = a.col < b.col ? a : b;
+  const right = a.col < b.col ? b : a;
+  return { x: left.x + ROOM_W, y: left.y + ROOM_H / 2 - CORRIDOR_W / 2, w: right.x - (left.x + ROOM_W), h: CORRIDOR_W };
+}
+
+function buildWalkable(){
+  walkableAreas = [];
+
+  ROOMS.forEach(r => {
+    walkableAreas.push({
+      x: r.x + WALKABLE_INSET,
+      y: r.y + WALKABLE_INSET,
+      w: r.w - WALKABLE_INSET * 2,
+      h: r.h - WALKABLE_INSET * 2,
+    });
+  });
+
+  const drawn = new Set();
+  ROOMS.forEach(a => a.links.forEach(bid => {
+    const key = [a.id, bid].sort().join('-');
+    if(drawn.has(key)) return; drawn.add(key);
+    const b = byId(bid);
+    const rect = getRectBetweenRooms(a, b);
+
+    if(rect && rect.w > 0 && rect.h > 0){
+      walkableAreas.push({
+        x: rect.x + WALKABLE_INSET,
+        y: rect.y + WALKABLE_INSET,
+        w: rect.w - WALKABLE_INSET * 2,
+        h: rect.h - WALKABLE_INSET * 2,
+      });
+    }
+  }));
+}
+
+function clampToBounds(px, py){
+  return {
+    x: Math.min(Math.max(px, HULL_MARGIN), MAP_W - HULL_MARGIN),
+    y: Math.min(Math.max(py, HULL_MARGIN), MAP_H - HULL_MARGIN),
+  };
+}
+
+function getAllowedTravelAreas(){
+  if(!state.allowedTravelNodeIds || state.allowedTravelNodeIds.length === 0){
+    return walkableAreas;
+  }
+
+  const ids = new Set(state.allowedTravelNodeIds);
+  const areas = [];
+
+  ids.forEach(nodeId => {
+    const room = byId(nodeId);
+    if(!room) return;
+    areas.push({ x: room.x + WALKABLE_INSET, y: room.y + WALKABLE_INSET, w: room.w - WALKABLE_INSET * 2, h: room.h - WALKABLE_INSET * 2 });
+  });
+
+  const drawn = new Set();
+  state.allowedTravelNodeIds.forEach(nodeId => {
+    const roomA = byId(nodeId);
+    if(!roomA) return;
+    roomA.links.forEach(bid => {
+      if(!ids.has(bid)) return;
+      const key = [roomA.id, bid].sort().join('-');
+      if(drawn.has(key)) return; drawn.add(key);
+      const roomB = byId(bid);
+      if(!roomB) return;
+      const rect = getRectBetweenRooms(roomA, roomB);
+      if(rect && rect.w > 0 && rect.h > 0){
+        areas.push({ x: rect.x + WALKABLE_INSET, y: rect.y + WALKABLE_INSET, w: rect.w - WALKABLE_INSET * 2, h: rect.h - WALKABLE_INSET * 2 });
+      }
+    });
+  });
+
+  return areas;
+}
 
 function isWalkable(px, py, radius){
-  return px - radius >= HULL_MARGIN && px + radius <= MAP_W - HULL_MARGIN &&
-         py - radius >= HULL_MARGIN && py + radius <= MAP_H - HULL_MARGIN;
+  const minX = px - radius;
+  const maxX = px + radius;
+  const minY = py - radius;
+  const maxY = py + radius;
+
+  if(minX < HULL_MARGIN || maxX > MAP_W - HULL_MARGIN || minY < HULL_MARGIN || maxY > MAP_H - HULL_MARGIN){
+    return false;
+  }
+
+  return getAllowedTravelAreas().some(rect =>
+    minX >= rect.x && maxX <= rect.x + rect.w &&
+    minY >= rect.y && maxY <= rect.y + rect.h
+  );
 }
 
 function currentRoomAt(px, py){
@@ -284,6 +380,14 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
+function updateRoomAvailability(){
+  ROOMS.forEach(r => {
+    const div = document.getElementById('room-' + r.id);
+    if(!div) return;
+    div.classList.toggle('available', state.allowedTravelNodeIds.includes(r.id));
+  });
+}
+
 function movementLoop(){
   let dx = 0, dy = 0;
   if(keys['arrowup']||keys['w']) dy -= 1;
@@ -294,8 +398,15 @@ function movementLoop(){
     const len = Math.hypot(dx,dy) || 1;
     const nx = player.x + (dx/len) * player.speed;
     const ny = player.y + (dy/len) * player.speed;
-    if(isWalkable(nx, player.y, player.radius)) player.x = nx;
-    if(isWalkable(player.x, ny, player.radius)) player.y = ny;
+
+    const proposed = { x: player.x, y: player.y };
+    if(isWalkable(nx, player.y, player.radius)) proposed.x = nx;
+    if(isWalkable(proposed.x, ny, player.radius)) proposed.y = ny;
+
+    const clamped = clampToBounds(proposed.x, proposed.y);
+    player.x = clamped.x;
+    player.y = clamped.y;
+
     renderPlayer();
     updateInteractPrompt();
   }
@@ -303,6 +414,10 @@ function movementLoop(){
 }
 
 function renderPlayer(){
+  const clamped = clampToBounds(player.x, player.y);
+  player.x = clamped.x;
+  player.y = clamped.y;
+
   const p = document.getElementById('player');
   p.style.left = (player.x - 13) + 'px';
   p.style.top = (player.y - 16) + 'px';
@@ -361,6 +476,7 @@ function setNodeStatus(nodeId, status){
   state.nodeStatus[nodeId] = status;
   const div = document.getElementById('room-'+nodeId);
   if(div){ div.classList.remove('idle','leaking','sealed','burst'); div.classList.add(status); }
+  updateRoomAvailability();
   renderTaskList();
 }
 
@@ -525,7 +641,9 @@ function handleFixSuccess(q){
 
   const node = byId(state.currentNodeId);
   const nextId = node.links[Math.floor(Math.random()*node.links.length)];
-  setTimeout(()=>{ state.currentNodeId = nextId; setNodeStatus(nextId, 'leaking'); patchSession({ currentNodeId: nextId }); }, 500);
+  state.allowedTravelNodeIds = [state.currentNodeId, nextId];
+  updateRoomAvailability();
+  setTimeout(()=>{ state.currentNodeId = nextId; state.allowedTravelNodeIds = [nextId]; updateRoomAvailability(); setNodeStatus(nextId, 'leaking'); patchSession({ currentNodeId: nextId }); }, 500);
 }
 
 function handleFixFail(q){
@@ -577,6 +695,7 @@ function restartGame(){
   state.fixedQuestionIds=[]; state.failedQuestionIds=[]; state.currentNodeId='reactor';
   ROOMS.forEach(r => setNodeStatus(r.id,'idle'));
   const startRoom = byId(state.currentNodeId);
+  state.allowedTravelNodeIds = [state.currentNodeId];
   player.x = startRoom.x + startRoom.w/2; player.y = startRoom.y + startRoom.h/2;
   renderPlayer();
   updateHUD();
