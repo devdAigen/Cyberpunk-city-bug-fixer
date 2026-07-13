@@ -1,6 +1,8 @@
 import Player from "../entities/Player.js";
 // import Phaser from "phaser";
-
+import EngineTask from "../tasks/EngineTask.js";
+import NavigationTask from "../tasks/NavigationTask.js";
+import ReactorTask from "../tasks/ReactorTask.js";
 
 export default class GameScene extends Phaser.Scene {
 
@@ -23,9 +25,21 @@ export default class GameScene extends Phaser.Scene {
 
         console.log("Tileset:", tileset);
 
+        const taskObject = map.getObjectLayer("taskObject");
+
+        taskObject.objects.forEach(task => {
+            console.log(task.name);
+            console.log(task.type);
+            console.log(task.x, task.y);
+});
+
         map.createLayer("Ground", tileset, 0, 0);
             const collisionLayer = map.createLayer("Object", tileset);
         map.createLayer("Tile Layer 1", tileset, 0, 0);
+
+        
+        map.createLayer("task", tileset, 0, 0);
+      //  map.createLayer("taskObject", objectgroup, 0, 0);
        // map.createLayer("Object", tileset, 0, 0);
         this.player = new Player(this, 300, 300);
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -34,7 +48,6 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.setZoom(2);
 
         // const collisionLayer = map.createLayer("Collision", tileset);
-
         collisionLayer.setCollisionByExclusion([-1]);
         collisionLayer.renderDebug(this.add.graphics(), {
             tileColor: null,
@@ -42,6 +55,57 @@ export default class GameScene extends Phaser.Scene {
         });
 
         this.physics.add.collider(this.player, collisionLayer);
+//task implemntation
+
+         const taskLayer = map.getLayer("task").tilemapLayer;
+
+    this.tasks = [];
+
+    taskLayer.forEachTile(tile => {
+
+        if (tile.index !== -1) {
+
+            console.log(tile.index, tile.x, tile.y);
+
+            this.tasks.push({
+                tile: tile,
+                x: tile.getCenterX(),
+                y: tile.getCenterY(),
+                completed: false
+            });
+
+        }
+
+    });
+
+    console.log(this.tasks);
+
+this.tasks = [];
+
+taskObject.objects.forEach(task => {
+console.log(task.name, task.type, task.x, task.y);
+    let taskClass;
+
+    switch(task.name){
+
+        case "Engine":
+            taskClass = new EngineTask(this, task);
+            break;
+
+        case "Navigation":
+            taskClass = new NavigationTask(this, task);
+            break;
+
+        case "Reactor":
+            taskClass = new ReactorTask(this, task);
+            break;
+
+    }
+
+    this.tasks.push(taskClass);
+
+});
+    
     }
 
     update() {
