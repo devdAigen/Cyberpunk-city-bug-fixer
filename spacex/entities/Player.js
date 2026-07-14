@@ -8,14 +8,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
 
         this.setSize(32, 32);
-        this.setDisplaySize(36, 36);
+        this.setDisplaySize(32, 32);
 
         // Temporary green square
         this.body.setSize(32, 32);
 
         const graphics = scene.add.graphics();
         graphics.fillStyle(0x00ff00, 1);
-        graphics.fillRect(10, 10, 32, 32);
+        graphics.fillRect(0, 0, 32, 32);
 
         const key = "player-temp";
 

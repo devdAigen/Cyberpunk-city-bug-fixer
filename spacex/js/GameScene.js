@@ -11,7 +11,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
 
-    
+
 
     create() {
 
@@ -31,18 +31,19 @@ export default class GameScene extends Phaser.Scene {
             console.log(task.name);
             console.log(task.type);
             console.log(task.x, task.y);
-});
+        });
 
         map.createLayer("Ground", tileset, 0, 0);
-            const collisionLayer = map.createLayer("Object", tileset);
+        const collisionLayer = map.createLayer("Object", tileset);
         map.createLayer("Tile Layer 1", tileset, 0, 0);
 
-        
+
         map.createLayer("task", tileset, 0, 0);
-      //  map.createLayer("taskObject", objectgroup, 0, 0);
-       // map.createLayer("Object", tileset, 0, 0);
+        //  map.createLayer("taskObject", objectgroup, 0, 0);
+        // map.createLayer("Object", tileset, 0, 0);
         this.player = new Player(this, 300, 300);
         this.cursors = this.input.keyboard.createCursorKeys();
+        this.eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
         this.cameras.main.setBackgroundColor("#333333");
         this.cameras.main.startFollow(this.player);
         this.cameras.main.setZoom(2);
@@ -55,57 +56,35 @@ export default class GameScene extends Phaser.Scene {
         });
 
         this.physics.add.collider(this.player, collisionLayer);
-//task implemntation
+        //task implemntation
 
-         const taskLayer = map.getLayer("task").tilemapLayer;
+        this.tasks = [];
 
-    this.tasks = [];
+        taskObject.objects.forEach(task => {
+            console.log(task.name, task.type, task.x, task.y);
+            let taskClass;
 
-    taskLayer.forEachTile(tile => {
+            switch (task.name) {
 
-        if (tile.index !== -1) {
+                case "Engine":
+                    taskClass = new EngineTask(this, task);
+                    break;
 
-            console.log(tile.index, tile.x, tile.y);
+                case "Navigation":
+                    taskClass = new NavigationTask(this, task);
+                    break;
 
-            this.tasks.push({
-                tile: tile,
-                x: tile.getCenterX(),
-                y: tile.getCenterY(),
-                completed: false
-            });
+                case "Reactor":
+                    taskClass = new ReactorTask(this, task);
+                    break;
 
-        }
+            }
 
-    });
+            this.tasks.push(taskClass);
+            console.log("Task added:", taskClass);
 
-    console.log(this.tasks);
+        });
 
-this.tasks = [];
-
-taskObject.objects.forEach(task => {
-console.log(task.name, task.type, task.x, task.y);
-    let taskClass;
-
-    switch(task.name){
-
-        case "Engine":
-            taskClass = new EngineTask(this, task);
-            break;
-
-        case "Navigation":
-            taskClass = new NavigationTask(this, task);
-            break;
-
-        case "Reactor":
-            taskClass = new ReactorTask(this, task);
-            break;
-
-    }
-
-    this.tasks.push(taskClass);
-
-});
-    
     }
 
     update() {
@@ -125,6 +104,31 @@ console.log(task.name, task.type, task.x, task.y);
 
         if (this.cursors.down.isDown)
             this.player.setVelocityY(speed);
+
+
+        let nearbyTask = null;
+
+        this.tasks.forEach(task => {
+
+            if (task.completed) return;
+
+            const distance = Phaser.Math.Distance.Between(
+                this.player.x,
+                this.player.y,
+                task.data.x,
+                task.data.y
+            );
+
+            if (distance < 50) {
+                nearbyTask = task;
+            }
+
+        });
+
+        if (nearbyTask && Phaser.Input.Keyboard.JustDown(this.eKey)) {
+            console.log("Starting:", nearbyTask.data.name);
+            nearbyTask.start();
+        }
 
     }
 }
