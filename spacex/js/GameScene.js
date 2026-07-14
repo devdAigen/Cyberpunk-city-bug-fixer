@@ -3,14 +3,13 @@ import Player from "../entities/Player.js";
 import EngineTask from "../tasks/EngineTask.js";
 import NavigationTask from "../tasks/NavigationTask.js";
 import ReactorTask from "../tasks/ReactorTask.js";
+import PopupWindow from "../Ui/PopupWindow.js";
 
 export default class GameScene extends Phaser.Scene {
 
     constructor() {
         super("GameScene");
     }
-
-
 
 
     create() {
@@ -27,11 +26,6 @@ export default class GameScene extends Phaser.Scene {
 
         const taskObject = map.getObjectLayer("taskObject");
 
-        taskObject.objects.forEach(task => {
-            console.log(task.name);
-            console.log(task.type);
-            console.log(task.x, task.y);
-        });
 
         map.createLayer("Ground", tileset, 0, 0);
         const collisionLayer = map.createLayer("Object", tileset);
@@ -39,29 +33,28 @@ export default class GameScene extends Phaser.Scene {
 
 
         map.createLayer("task", tileset, 0, 0);
-        //  map.createLayer("taskObject", objectgroup, 0, 0);
-        // map.createLayer("Object", tileset, 0, 0);
         this.player = new Player(this, 300, 300);
         this.cursors = this.input.keyboard.createCursorKeys();
         this.eKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+        this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         this.cameras.main.setBackgroundColor("#333333");
         this.cameras.main.startFollow(this.player);
-        this.cameras.main.setZoom(2);
+        this.cameras.main.setZoom(1);
 
-        // const collisionLayer = map.createLayer("Collision", tileset);
+        const mapWidth = map.widthInPixels;
+        const mapHeight = map.heightInPixels;
+
+        console.log(mapWidth, mapHeight);
+
         collisionLayer.setCollisionByExclusion([-1]);
-        collisionLayer.renderDebug(this.add.graphics(), {
-            tileColor: null,
-            collidingTileColor: new Phaser.Display.Color(255, 0, 0, 120)
-        });
-
+    
         this.physics.add.collider(this.player, collisionLayer);
         //task implemntation
 
         this.tasks = [];
 
         taskObject.objects.forEach(task => {
-            console.log(task.name, task.type, task.x, task.y);
+     //       console.log(task.name, task.type, task.x, task.y);
             let taskClass;
 
             switch (task.name) {
@@ -85,9 +78,62 @@ export default class GameScene extends Phaser.Scene {
 
         });
 
+        this.popup = new PopupWindow(this);
+
+
+        console.log("Map Width (tiles):", map.width);
+console.log("Map Height (tiles):", map.height);
+
+console.log("Tile Width:", map.tileWidth);
+console.log("Tile Height:", map.tileHeight);
+
+console.log("World Width:", map.widthInPixels);
+console.log("World Height:", map.heightInPixels);
+
+map.layers.forEach(layer => {
+    console.log(layer.name);
+    console.log("Offset X:", layer.tilemapLayer?.x);
+    console.log("Offset Y:", layer.tilemapLayer?.y);
+});
+console.log(this.cameras.main.width);
+console.log(this.cameras.main.height);
+
+// const zoomX = this.cameras.main.width / map.widthInPixels;
+// const zoomY = this.cameras.main.height / map.heightInPixels;
+
+// const zoom = Math.min(zoomX, zoomY);
+
+// this.cameras.main.setZoom(zoom);
+
+// this.cameras.main.centerOn(
+//     map.widthInPixels / 2,
+//     map.heightInPixels / 2
+// );
+
+
+    this.gamePaused = false;
+
+    
+    }
+
+    openTask(title) {
+        this.gamePaused = true;
+        this.popup.open(title);
+    }
+
+    closeTask() {
+        this.gamePaused = false;
+        this.popup.close();
     }
 
     update() {
+
+        if (this.gamePaused) {
+            if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+                this.closeTask();
+            }
+            return;
+        }
 
         const speed = 200;
 
@@ -129,6 +175,17 @@ export default class GameScene extends Phaser.Scene {
             console.log("Starting:", nearbyTask.data.name);
             nearbyTask.start();
         }
+
+        // if (Phaser.Input.Keyboard.JustDown(this.eKey)) {
+        //     this.gamePaused = false;
+        //     this.popup.open("Memory Leak");
+        // }
+
+        if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
+            this.gamePaused = false;
+            this.popup.close();
+        }
+
 
     }
 }
