@@ -3,7 +3,7 @@ import Player from "../entities/Player.js";
 import EngineTask from "../tasks/EngineTask.js";
 import NavigationTask from "../tasks/NavigationTask.js";
 import ReactorTask from "../tasks/ReactorTask.js";
-import PopupWindow from "../Ui/PopupWindow.js";
+import UIManager from "../Ui/UIManager.js";
 
 export default class GameScene extends Phaser.Scene {
 
@@ -78,9 +78,9 @@ export default class GameScene extends Phaser.Scene {
 
         });
 
-        this.popup = new PopupWindow(this);
+         this.ui = new UIManager(this);
 
-
+console.log(this.ui);
         console.log("Map Width (tiles):", map.width);
 console.log("Map Height (tiles):", map.height);
 
@@ -118,12 +118,13 @@ console.log(this.cameras.main.height);
 
     openTask(title) {
         this.gamePaused = true;
-        this.popup.open(title);
+
+    this.ui.open(title, "html");
     }
 
     closeTask() {
         this.gamePaused = false;
-        this.popup.close();
+        this.ui.close();
     }
 
     update() {
@@ -183,7 +184,7 @@ console.log(this.cameras.main.height);
 
         if (Phaser.Input.Keyboard.JustDown(this.escKey)) {
             this.gamePaused = false;
-            this.popup.close();
+            this.ui.close();
         }
 
 

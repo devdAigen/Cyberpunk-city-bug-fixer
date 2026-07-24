@@ -602,7 +602,7 @@ function openQuestionModal(){
     state.timeLeft -= 1;
     document.getElementById('timerNum').textContent = state.timeLeft;
     document.getElementById('timerFill').style.width = `${(state.timeLeft / (q.timeLimitSeconds||30))*100}%`;
-    if(state.timeLeft <= 0){ clearInterval(state.timerHandle); submitAnswer(-1, null); }
+  //  if(state.timeLeft <= 0){ clearInterval(state.timerHandle); submitAnswer(-1, null); }
   }, 1000);
 
   document.getElementById('modalBackdrop').classList.remove('hidden');

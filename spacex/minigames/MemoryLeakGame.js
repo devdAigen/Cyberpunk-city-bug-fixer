@@ -2,11 +2,39 @@ import BaseMiniGame from "./BaseMiniGame.js";
 import GameScene from "../js/GameScene.js";
 export default class MemoryLeakGame extends BaseMiniGame {
 
-    start() {
+      start() {
 
-        console.log("Memory Leak Started");
+        this.scene.ui.open(
 
-        this.scene.openTask("Memory Leak");
+            "Memory Leak",
+
+            `
+            <h2>Memory Leak Detected</h2>
+
+            <p>RAM Usage</p>
+
+            <progress value="65" max="100" style="width:100%;height:25px;"></progress>
+
+            <br><br>
+
+            <button id="repairBtn">
+
+                Repair Memory
+
+            </button>
+            `
+        );
+
+        document
+            .getElementById("repairBtn")
+            .onclick = () => {
+
+                alert("Memory Fixed");
+
+                this.complete();
+
+            };
+
     }
 
 }

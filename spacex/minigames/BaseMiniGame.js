@@ -12,15 +12,15 @@ export default class BaseMiniGame {
 
     complete() {
 
-        console.log("Mini-game completed");
+         this.scene.ui.close();
 
-        this.scene.closeTask();
+    console.log("Mini game complete");
     }
 
     fail() {
 
         console.log("Mini-game failed");
 
-        this.scene.closeTask();
+        this.scene.ui.close();
     }
 }

@@ -2,6 +2,8 @@ export default class PopupWindow {
 
     constructor(scene) {
 
+        console.log("PopupWindow created");
+console.log(this); 
         this.scene = scene;
 
         this.container = scene.add.container(0, 0);
@@ -33,6 +35,8 @@ export default class PopupWindow {
 
         this.window.setStrokeStyle(3, 0x4caf50);
 
+
+
         // Title
         this.title = scene.add.text(
             scene.scale.width / 2,
@@ -50,7 +54,18 @@ export default class PopupWindow {
             this.title
         ]);
 
+        this.content = scene.add.container(0, 0);
+
+        this.container.add(this.content);
+
     }
+
+    clearContent() {
+    this.content.removeAll(true);
+}
+addContent(gameObject) {
+    this.content.add(gameObject);
+}
 
     open(title){
 
